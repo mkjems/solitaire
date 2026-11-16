@@ -452,9 +452,40 @@ describe('undo and redo', () => {
   });
 });
 
+/** What is wrong with a position, if anything. Plain checks: `expect` is too slow for 60,000 positions. */
+function problems(state: KlondikeState): string[] {
+  const found: string[] = [];
+  const cards = allCards(state);
+  if (cards.length !== 52 || new Set(cards).size !== 52) found.push('not 52 distinct cards');
+  if (state.wasteFan > state.waste.length || state.wasteFan < Math.min(1, state.waste.length)) {
+    found.push(`waste fan ${state.wasteFan} with ${state.waste.length} in the waste`);
+  }
+  state.tableau.forEach((pile, p) => {
+    // A pile with cards always shows at least its top card.
+    if (pile.cards.length > 0 && pile.faceDown >= pile.cards.length) found.push(`tableau ${p} has no face-up card`);
+    // Face-up cards always form a valid descending, alternating run.
+    for (let i = pile.faceDown + 1; i < pile.cards.length; i++) {
+      const below = pile.cards[i - 1] as CardId;
+      const above = pile.cards[i] as CardId;
+      if (rankOf(above) !== rankOf(below) - 1 || colourOf(above) === colourOf(below)) {
+        found.push(`tableau ${p}: ${above} on ${below}`);
+      }
+    }
+  });
+  state.foundations.forEach((pile, f) => {
+    pile.forEach((card, i) => {
+      if (rankOf(card) !== i + 1 || suitOf(card) !== suitOf(pile[0] as CardId)) found.push(`foundation ${f}: ${card}`);
+    });
+  });
+  if (state.options.scoring !== 'vegas' && state.score < 0) found.push(`score ${state.score}`);
+  return found;
+}
+
 describe('random play', () => {
   it('keeps all 52 cards and a consistent position through hundreds of random games', () => {
-    for (let seed = 1; seed <= 200; seed++) {
+    const failures: string[] = [];
+    let positions = 0;
+    for (let seed = 1; seed <= 200 && failures.length === 0; seed++) {
       const rng = createRng(seed * 7919);
       const options: KlondikeOptions = {
         drawCount: seed % 2 === 0 ? 3 : 1,
@@ -464,32 +495,17 @@ describe('random play', () => {
       for (let step = 0; step < 300; step++) {
         const moves = legalMoves(state);
         if (moves.length === 0) break;
-        state = applyMove(state, moves[Math.floor(rng() * moves.length)] as Move);
-
-        const cards = allCards(state);
-        expect(cards).toHaveLength(52);
-        expect(new Set(cards).size).toBe(52);
-        expect(state.wasteFan).toBeLessThanOrEqual(state.waste.length);
-        expect(state.wasteFan).toBeGreaterThanOrEqual(Math.min(1, state.waste.length));
-        for (const pile of state.tableau) {
-          // A pile with cards always shows at least its top card.
-          if (pile.cards.length > 0) expect(pile.faceDown).toBeLessThan(pile.cards.length);
-          // Face-up cards always form a valid descending, alternating run.
-          for (let i = pile.faceDown + 1; i < pile.cards.length; i++) {
-            const below = pile.cards[i - 1] as CardId;
-            const above = pile.cards[i] as CardId;
-            expect(rankOf(above)).toBe(rankOf(below) - 1);
-            expect(colourOf(above)).not.toBe(colourOf(below));
-          }
+        const move = moves[Math.floor(rng() * moves.length)] as Move;
+        state = applyMove(state, move);
+        positions++;
+        const found = problems(state);
+        if (found.length > 0) {
+          failures.push(`deal ${seed}, step ${step}, after ${JSON.stringify(move)}: ${found.join('; ')}`);
+          break;
         }
-        for (const pile of state.foundations) {
-          pile.forEach((card, i) => {
-            expect(rankOf(card)).toBe(i + 1);
-            expect(suitOf(card)).toBe(suitOf(pile[0] as CardId));
-          });
-        }
-        if (options.scoring !== 'vegas') expect(state.score).toBeGreaterThanOrEqual(0);
       }
     }
+    expect(failures).toEqual([]);
+    expect(positions).toBeGreaterThan(10_000);
   });
 });
