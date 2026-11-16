@@ -42,6 +42,12 @@ const en = {
   warnMe: 'Warn me',
   deadEnd: 'This game can no longer be won.',
   goBack: 'Go back',
+  daily: 'Daily',
+  dailyDeal: 'Today’s deal',
+  playDaily: 'Play today’s deal',
+  dailySolved: 'Today’s deal solved',
+  solvedToday: 'Solved today',
+  daysInARow: 'days in a row',
   neverWinnable: 'This deal could not be won from the start.',
   sound: 'Sound',
   screen: 'Screen',
@@ -77,6 +83,10 @@ const en = {
     [
       'Moving cards',
       'Drag cards where you want them, or tap a card to send it to the best place. Right-click works as a tap. Hidden cards turn over by themselves.',
+    ],
+    [
+      'Today’s deal',
+      'A new winnable deal every day, the same for everyone who plays with the same rules. Solve it day after day to build up days in a row.',
     ],
     [
       'Hints and dead ends',
@@ -138,6 +148,12 @@ const da: Strings = {
   warnMe: 'Advar mig',
   deadEnd: 'Kabalen kan ikke længere gå op.',
   goBack: 'Gå tilbage',
+  daily: 'Dagens',
+  dailyDeal: 'Dagens kabale',
+  playDaily: 'Spil dagens kabale',
+  dailySolved: 'Dagens kabale gik op',
+  solvedToday: 'Gået op i dag',
+  daysInARow: 'dage i træk',
   neverWinnable: 'Denne kabale kunne ikke gå op fra starten.',
   sound: 'Lyd',
   screen: 'Skærm',
@@ -173,6 +189,10 @@ const da: Strings = {
     [
       'Flyt kort',
       'Træk kortene derhen, hvor du vil have dem, eller tryk på et kort for at sende det til det bedste sted. Højreklik virker som et tryk. Skjulte kort vender sig selv.',
+    ],
+    [
+      'Dagens kabale',
+      'En ny kabale hver dag, der kan gå op, og som er den samme for alle, der spiller med de samme regler. Få den til at gå op dag efter dag, og saml dage i træk.',
     ],
     [
       'Tips og blindgyder',

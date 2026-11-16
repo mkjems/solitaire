@@ -7,10 +7,21 @@ import { SCORING_MODES, type Settings } from './storage';
 import type { Strings } from './strings';
 import type { Table } from './table';
 
+/** The daily deal, as the HUD shows it. */
+export interface DailyInfo {
+  /** The day of the daily deal being played (`YYYY-MM-DD`), or null for any other game. */
+  readonly playing: string | null;
+  readonly solvedToday: boolean;
+  /** Days in a row with the daily deal solved. */
+  readonly streak: number;
+}
+
 export interface HudActions {
   newGame(): void;
   /** Undo back to the last position from which the game could still be won. */
   goBack(): void;
+  /** Deal today's daily deal. */
+  playDaily(): void;
   changeSettings(settings: Settings): void;
   resetStats(): void;
   toggleFullScreen(): void;
@@ -122,6 +133,8 @@ export class Hud {
   private readonly win: HTMLElement;
   private readonly winSummary: HTMLElement;
   private readonly winStreak: HTMLElement;
+  private readonly dailyStatus: HTMLElement;
+  private daily: DailyInfo = { playing: null, solvedToday: false, streak: 0 };
 
   private readonly dialog: HTMLDialogElement;
   private readonly tabs = new Map<Tab, { tab: HTMLButtonElement; page: HTMLElement }>();
@@ -218,6 +231,14 @@ export class Hud {
 
     // Game settings
     const gamePage = addTab('game', strings.tabGame);
+    const playDaily = button(strings.playDaily, 'play-daily', 'quiet');
+    playDaily.addEventListener('click', () => {
+      this.dialog.close();
+      actions.playDaily();
+    });
+    this.dailyStatus = el('span', 'daily-status');
+    const dailyRow = el('div', 'daily-row');
+    dailyRow.append(playDaily, this.dailyStatus);
     this.drawChoice = segmented<DrawCount>(
       'draw',
       [
@@ -274,6 +295,7 @@ export class Hud {
     });
     this.nextGameNote.append(el('span', '', strings.nextGame), newNow);
     gamePage.append(
+      setting(strings.dailyDeal, dailyRow),
       setting(strings.draw, this.drawChoice.el),
       setting(strings.scoring, this.scoringChoice.el),
       setting(strings.deals, this.dealsChoice.el),
@@ -371,6 +393,26 @@ export class Hud {
     this.renderStats();
   }
 
+  setDaily(daily: DailyInfo): void {
+    this.daily = daily;
+    this.last = '';
+    this.update();
+    this.renderSettings();
+  }
+
+  /** "16 Nov" for `2026-11-16`, in the page's language. */
+  private dayLabel(day: string): string {
+    const [y, m, d] = day.split('-').map(Number) as [number, number, number];
+    // The English text is British, so the dates are too ("16 Nov").
+    const lang = document.documentElement.lang === 'en' ? 'en-GB' : document.documentElement.lang || undefined;
+    const format = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short' });
+    return format.format(new Date(y, m - 1, d));
+  }
+
+  private streakText(): string {
+    return this.daily.streak > 1 ? `${this.daily.streak} ${this.strings.daysInARow}` : '';
+  }
+
   setSettings(settings: Settings): void {
     this.settings = settings;
     this.renderSettings();
@@ -399,15 +441,24 @@ export class Hud {
   }
 
   /** Shows the title screen and resolves with the player's choice. */
-  titleScreen(canResume: boolean): Promise<'new' | 'resume'> {
+  /**
+   * The opening screen. Resolves with the player's choice: continue the saved
+   * game, deal a new one, or play today's deal. With `dailyFirst` (a link to
+   * the daily deal), today's deal is the main choice.
+   */
+  titleScreen(canResume: boolean, dailyFirst = false): Promise<'new' | 'resume' | 'daily'> {
     const strings = this.strings;
     const screen = el('div', 'title-screen');
     const inner = el('div', 'title-inner');
     const actions = el('div', 'title-actions');
-    const start = button(canResume ? strings.resume : strings.start, 'start', 'primary');
+    const main: 'new' | 'resume' | 'daily' = dailyFirst ? 'daily' : canResume ? 'resume' : 'new';
+    const labels = { new: strings.start, resume: strings.resume, daily: strings.dailyDeal };
+    const start = button(labels[main], 'start', 'primary');
     actions.append(start);
-    const fresh = canResume ? button(strings.newGame, 'start-new', 'quiet') : null;
+    const fresh = main === 'resume' ? button(strings.newGame, 'start-new', 'quiet') : null;
     if (fresh) actions.append(fresh);
+    const daily = main !== 'daily' ? button(strings.dailyDeal, 'start-daily', 'quiet') : null;
+    if (daily) actions.append(daily);
     inner.append(
       el('div', 'ornament'),
       el('h1', 'title-name', strings.title),
@@ -420,14 +471,15 @@ export class Hud {
     start.focus({ preventScroll: true });
 
     return new Promise((resolve) => {
-      const done = (choice: 'new' | 'resume'): void => {
+      const done = (choice: 'new' | 'resume' | 'daily'): void => {
         screen.classList.remove('is-visible');
         screen.classList.add('is-leaving');
         setTimeout(() => screen.remove(), 600);
         resolve(choice);
       };
-      start.addEventListener('click', () => done(canResume ? 'resume' : 'new'), { once: true });
+      start.addEventListener('click', () => done(main), { once: true });
       fresh?.addEventListener('click', () => done('new'), { once: true });
+      daily?.addEventListener('click', () => done('daily'), { once: true });
     });
   }
 
@@ -445,6 +497,7 @@ export class Hud {
       table.canFinish,
       table.hasStarted,
       state.seed,
+      this.daily.playing,
       table.seconds,
       state.moves,
       table.score,
@@ -458,7 +511,9 @@ export class Hud {
     this.hint.disabled = table.phase !== 'playing';
     this.finish.hidden = !table.canFinish;
 
-    this.deal.value.textContent = `#${state.seed}`;
+    const dealLabel = this.deal.el.querySelector('b');
+    if (dealLabel) dealLabel.textContent = this.daily.playing ? this.strings.daily : this.strings.deal;
+    this.deal.value.textContent = this.daily.playing ? this.dayLabel(this.daily.playing) : `#${state.seed}`;
     this.time.value.textContent = formatTime(table.seconds);
     this.moves.value.textContent = String(state.moves);
     this.score.el.hidden = scoring === 'none';
@@ -473,7 +528,11 @@ export class Hud {
       if (scoring !== 'none') parts.push(`${this.strings.score} ${table.score}`);
       this.winSummary.textContent = parts.join('   ·   ');
       const mode = state.options.drawCount === 1 ? this.stats.draw1 : this.stats.draw3;
-      this.winStreak.textContent = mode.streak > 1 ? `${this.strings.streak}: ${mode.streak}` : '';
+      if (this.daily.playing) {
+        this.winStreak.textContent = [this.strings.dailySolved, this.streakText()].filter(Boolean).join('   ·   ');
+      } else {
+        this.winStreak.textContent = mode.streak > 1 ? `${this.strings.streak}: ${mode.streak}` : '';
+      }
     }
     this.renderSettings();
   }
@@ -500,6 +559,9 @@ export class Hud {
     this.scoringChoice.set(this.settings.scoring);
     this.dealsChoice.set(this.settings.winnable);
     this.deadEndsChoice.set(this.settings.deadEnds);
+    this.dailyStatus.textContent = this.daily.solvedToday
+      ? [`✓ ${this.strings.solvedToday}`, this.streakText()].filter(Boolean).join(' · ')
+      : this.streakText();
     this.soundChoice.set(this.settings.sound);
     const current = this.table.state.options;
     const pending =

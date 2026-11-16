@@ -66,6 +66,7 @@ const en: Page = {
     featuresHeading: 'Features',
     features: [
       'Every deal can be won: the computer plays each one through before you get it (or choose fully random deals)',
+      'A new daily deal every day, the same for everyone, with a count of days in a row',
       'Draw one card or three cards from the stock',
       'Unlimited undo and redo',
       'Hints that keep the game winnable, a warning if it can no longer be won, and a button that finishes a solved game for you',
@@ -110,6 +111,7 @@ const da: Page = {
     featuresHeading: 'Det kan den',
     features: [
       'Alle kabaler kan gå op: computeren spiller hver kabale igennem, før du får den (eller vælg helt tilfældige)',
+      'Dagens kabale: en ny kabale hver dag, den samme for alle, med en optælling af dage i træk',
       'Træk ét eller tre kort fra bunken',
       'Fortryd og gentag så mange træk du vil',
       'Tips, der holder kabalen i live, en advarsel, hvis den ikke længere kan gå op, og en knap, der lægger resten op, når den er gået op',

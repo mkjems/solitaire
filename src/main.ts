@@ -1,19 +1,22 @@
 import './styles.css';
 import type { KlondikeOptions, KlondikeState, ScoringMode } from './engine/klondike';
+import { dayKey, previousDay } from './engine/daily';
 import { Advisor } from './ui/advisor';
 import { SoundBoard } from './ui/audio';
 import { celebrate, stopCelebration } from './ui/celebrate';
 import { WinnableDeals } from './ui/deals';
 import { Hud, hudInsets } from './ui/hud';
-import { emptyStats, recordStart, recordWin } from './ui/stats';
+import { dailyStreak, emptyStats, recordDaily, recordStart, recordWin } from './ui/stats';
 import {
   SCORING_MODES,
   type Settings,
   loadGame,
   loadSettings,
+  loadDaily,
   loadStats,
   saveGame,
   saveSettings,
+  saveDaily,
   saveStats,
 } from './ui/storage';
 import { pickLanguage } from './ui/strings';
@@ -63,8 +66,26 @@ async function start(): Promise<void> {
       saveGame(null);
       return;
     }
-    saveGame({ seed: table.state.seed, options: table.state.options, moves: table.log, seconds: table.seconds });
+    saveGame({
+      seed: table.state.seed,
+      options: table.state.options,
+      moves: table.log,
+      seconds: table.seconds,
+      daily: dailyDay,
+    });
   };
+
+  // The daily deal: the days it was solved, and the day of the one being played (if it is).
+  let dailyLog = loadDaily();
+  let dailyDay: string | null = null;
+  function showDaily(): void {
+    const today = dayKey(new Date());
+    hudRef.current?.setDaily({
+      playing: dailyDay,
+      solvedToday: dailyLog[today] !== undefined,
+      streak: dailyStreak(dailyLog, today, previousDay),
+    });
+  }
 
   // The dead-end notice: which position it was shown for, and whether the player was warned.
   const deadEnd: { shownFor: KlondikeState | null; warned: boolean; timer?: number } = {
@@ -87,6 +108,11 @@ async function start(): Promise<void> {
       hudRef.current?.setStats(stats);
     },
     won: () => {
+      if (dailyDay) {
+        dailyLog = recordDaily(dailyLog, dailyDay, { seconds: table.seconds, moves: table.state.moves });
+        saveDaily(dailyLog);
+        showDaily();
+      }
       stats = recordWin(stats, {
         draw: table.state.options.drawCount,
         scoring: table.state.options.scoring,
@@ -155,12 +181,23 @@ async function start(): Promise<void> {
   // Winnable deals come from the solver in a worker; one is kept ready for the rules in use.
   const deals = new WinnableDeals();
   if (settings.winnable) deals.prepare(options());
+  // Today's daily deal is worked out early too, so it is ready when asked for.
+  void deals.daily(dayKey(new Date()), options());
+
+  /** Deals today's daily deal, with the player's rules. */
+  const playDaily = async (): Promise<void> => {
+    const day = dayKey(new Date());
+    await newGame(await deals.daily(day, options()), day);
+  };
   let newGameRequest = 0;
   /** Whether the deal on the table was picked by the solver (rather than by number or at random). */
   let dealFromSolver = false;
 
-  /** Deals `seed`, or else a winnable deal (if chosen) or a random one. */
-  const newGame = async (seed?: number): Promise<void> => {
+  /**
+   * Deals `seed`, or else a winnable deal (if chosen) or a random one. `daily`
+   * is the day, when `seed` is that day's daily deal.
+   */
+  const newGame = async (seed?: number, daily: string | null = null): Promise<void> => {
     const request = ++newGameRequest;
     const rules = options();
     const fromSolver = seed === undefined && settings.winnable;
@@ -168,6 +205,8 @@ async function start(): Promise<void> {
     // A newer request (a second tap on New game) replaces this one.
     if (request !== newGameRequest) return;
     dealFromSolver = fromSolver;
+    dailyDay = daily;
+    showDaily();
     deadEnd.warned = false;
     hudRef.current?.hideDeadEnd();
     stopCelebration(tableRoot);
@@ -187,6 +226,7 @@ async function start(): Promise<void> {
     {
       newGame: () => void newGame(),
       goBack: () => void goBack(),
+      playDaily: () => void playDaily(),
       changeSettings: (next) => {
         const optionsChanged = next.drawCount !== settings.drawCount || next.scoring !== settings.scoring;
         const dealsChanged = next.winnable !== settings.winnable;
@@ -200,9 +240,14 @@ async function start(): Promise<void> {
         // the solver picked is only known to be winnable with the rules it was picked
         // for, so it is replaced, as is any deal when winnable deals are switched on.
         // A deal asked for by number keeps its number.
+        // The daily deal stays the daily deal: the one for the new rules.
         if ((optionsChanged || dealsChanged) && !table.hasStarted && table.phase === 'playing') {
           const replace = settings.winnable && (dealsChanged || dealFromSolver);
-          void newGame(replace ? undefined : table.state.seed);
+          if (dailyDay) {
+            if (optionsChanged) void playDaily();
+          } else {
+            void newGame(replace ? undefined : table.state.seed);
+          }
         }
       },
       resetStats: () => {
@@ -216,6 +261,7 @@ async function start(): Promise<void> {
     stats,
   );
   hudRef.current = hud;
+  showDaily();
 
   // Sound can only start after the player has touched the page. Phones only
   // count the end of a touch (not its start) as permission, so listen for both.
@@ -264,15 +310,21 @@ async function start(): Promise<void> {
   await table.load();
   table.relayout();
 
-  // `?deal=1234` plays a specific numbered deal; otherwise an unfinished game can be continued.
+  // `?deal=1234` plays a specific numbered deal and `?daily` today's deal;
+  // otherwise an unfinished game can be continued.
   const requested = Number(params.get('deal'));
   const dealNumber = Number.isInteger(requested) && requested > 0 ? requested : undefined;
-  const saved = dealNumber === undefined ? loadGame() : null;
+  const dailyLink = params.has('daily');
+  const saved = dealNumber === undefined && !dailyLink ? loadGame() : null;
   const canResume = saved !== null && saved.moves.length > 0;
 
-  const choice = await hud.titleScreen(canResume);
+  const choice = await hud.titleScreen(canResume, dailyLink);
   if (choice === 'resume' && saved) {
+    dailyDay = saved.daily ?? null;
+    showDaily();
     table.resume(saved.seed, saved.options, saved.moves, saved.seconds);
+  } else if (choice === 'daily') {
+    void playDaily();
   } else {
     void newGame(dealNumber);
   }

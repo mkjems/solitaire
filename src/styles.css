@@ -876,6 +876,25 @@ button.panel-tab.is-selected {
   color: rgba(244, 236, 214, 0.9);
 }
 
+/* Today's deal: its button, and whether it is solved and how many days in a row. */
+.daily-row {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 12px;
+}
+
+.daily-status {
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  opacity: 0.85;
+}
+
+.daily-status:empty {
+  display: none;
+}
+
 .segmented {
   display: inline-flex;
   flex-wrap: wrap;
@@ -996,6 +1015,10 @@ button.panel-tab.is-selected {
 
   .segmented {
     justify-content: flex-start;
+  }
+
+  .daily-row {
+    flex-direction: row;
   }
 
   .next-game {

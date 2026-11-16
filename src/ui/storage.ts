@@ -11,12 +11,13 @@ import {
   type Move,
   type ScoringMode,
 } from '../engine/klondike';
-import { type Stats, emptyStats } from './stats';
+import { type DailyLog, type Stats, emptyStats } from './stats';
 
 const KEYS = {
   settings: 'solitaire.settings',
   game: 'solitaire.game',
   stats: 'solitaire.stats',
+  daily: 'solitaire.daily',
 } as const;
 
 export interface Settings {
@@ -34,6 +35,8 @@ export interface SavedGame {
   readonly options: KlondikeOptions;
   readonly moves: readonly Move[];
   readonly seconds: number;
+  /** The day (`YYYY-MM-DD`) if this is that day's daily deal. */
+  readonly daily?: string | null;
 }
 
 export const SCORING_MODES: readonly ScoringMode[] = ['none', 'standard', 'timed', 'vegas'];
@@ -92,7 +95,26 @@ export function loadGame(): SavedGame | null {
     // Moves are replayed through the engine, which rejects anything malformed.
     moves: raw.moves as Move[],
     seconds: typeof raw.seconds === 'number' && raw.seconds >= 0 ? raw.seconds : 0,
+    daily: typeof raw.daily === 'string' && DAY.test(raw.daily) ? raw.daily : null,
   };
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+export function loadDaily(): DailyLog {
+  const raw = read(KEYS.daily);
+  if (!isRecord(raw)) return {};
+  const log: Record<string, { seconds: number; moves: number }> = {};
+  for (const [day, entry] of Object.entries(raw)) {
+    if (DAY.test(day) && isRecord(entry) && typeof entry.seconds === 'number' && typeof entry.moves === 'number') {
+      log[day] = { seconds: entry.seconds, moves: entry.moves };
+    }
+  }
+  return log;
+}
+
+export function saveDaily(log: DailyLog): void {
+  write(KEYS.daily, log);
 }
 
 export function saveGame(game: SavedGame | null): void {

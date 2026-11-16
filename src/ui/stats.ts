@@ -84,3 +84,35 @@ export function recordWin(stats: Stats, win: WinRecord): Stats {
 export function winRate(mode: ModeStats): number | null {
   return mode.played === 0 ? null : Math.round((mode.won / mode.played) * 100);
 }
+
+// ---------------------------------------------------------------------------
+// The daily deal
+// ---------------------------------------------------------------------------
+
+/** Days on which the daily deal was solved (`YYYY-MM-DD`), with how it went the first time. */
+export type DailyLog = Readonly<Record<string, { readonly seconds: number; readonly moves: number }>>;
+
+/** Days kept in the log: more than a year, so a long streak is never cut short. */
+const DAILY_DAYS_KEPT = 800;
+
+/** Records a solved day. Only the first solve of a day counts. */
+export function recordDaily(log: DailyLog, day: string, result: { seconds: number; moves: number }): DailyLog {
+  if (log[day]) return log;
+  const days = Object.keys(log).sort();
+  const kept = days.slice(Math.max(0, days.length - DAILY_DAYS_KEPT + 1));
+  return Object.fromEntries([...kept.map((d) => [d, log[d]]), [day, result]]);
+}
+
+/**
+ * Days in a row with the daily deal solved, up to `today`. Today not yet being
+ * solved does not break the streak: it still counts back from yesterday.
+ */
+export function dailyStreak(log: DailyLog, today: string, previousDay: (day: string) => string): number {
+  let day = log[today] ? today : previousDay(today);
+  let streak = 0;
+  while (log[day]) {
+    streak++;
+    day = previousDay(day);
+  }
+  return streak;
+}

@@ -6,6 +6,7 @@
 import { type Page, expect, test } from '@playwright/test';
 import { KlondikeGame } from '../src/engine/game';
 import { hint } from '../src/engine/hint';
+import { dailyDeal } from '../src/engine/daily';
 import { createRng } from '../src/engine/rng';
 import { analyse, solve } from '../src/engine/solver';
 import {
@@ -495,5 +496,66 @@ test.describe('smarter hints and dead ends', () => {
     await expect(page.locator('.notice')).toBeHidden();
     await page.locator('[data-action=hint]').click();
     await expect(page.locator('.notice')).toBeVisible({ timeout: 10_000 });
+  });
+});
+
+test.describe('daily deal', () => {
+  // A fixed day for the page; timers and animations run as normal.
+  const DAY = '2026-11-20';
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date(2026, 10, 20, 12, 0));
+  });
+
+  const todays = () => deal(dailyDeal(DAY, DEFAULT_OPTIONS), DEFAULT_OPTIONS);
+
+  test('the title screen offers today’s deal, the same for everyone', async ({ page }) => {
+    await page.goto('/?lang=en');
+    await page.locator('[data-action=start-daily]').click();
+    await waitForDeal(page);
+    await settle(page);
+    expect(await readTable(page)).toEqual(expected(todays()));
+    await expect(page.locator('.hud-status')).toContainText('20 Nov');
+  });
+
+  test('a link opens today’s deal, and the menu shows it as not yet solved', async ({ page }) => {
+    await page.goto('/?daily&lang=en');
+    await expect(page.locator('[data-action=start]')).toHaveText('Today’s deal');
+    await page.locator('[data-action=start]').click();
+    await waitForDeal(page);
+    await settle(page);
+    expect(await readTable(page)).toEqual(expected(todays()));
+    await page.locator('[data-action=menu]').click();
+    await expect(page.locator('[data-action=play-daily]')).toBeVisible();
+    await expect(page.locator('.daily-status')).toBeHidden();
+  });
+
+  test('solving it is remembered, with the days in a row', async ({ page }) => {
+    test.setTimeout(60_000);
+    // Today's deal played along the solver's line until only the finish is left.
+    const game = new KlondikeGame(todays().seed, DEFAULT_OPTIONS);
+    for (const move of solve(game.state).moves) {
+      if (canAutoFinish(game.state)) break;
+      game.play(move);
+    }
+    const saved = { seed: game.state.seed, options: DEFAULT_OPTIONS, moves: game.log, seconds: 300, daily: DAY };
+    const yesterday = { '2026-11-19': { seconds: 400, moves: 150 } };
+    await page.addInitScript(
+      ([value, log]) => {
+        if (sessionStorage.getItem('seeded')) return;
+        localStorage.setItem('solitaire.game', value);
+        localStorage.setItem('solitaire.daily', log);
+        sessionStorage.setItem('seeded', '1');
+      },
+      [JSON.stringify(saved), JSON.stringify(yesterday)] as const,
+    );
+    await page.goto('/?lang=en');
+    await page.locator('[data-action=start]').click();
+    await waitForDeal(page);
+    await page.locator('[data-action=finish]').click();
+    await expect(page.locator('.win')).toHaveClass(/is-visible/, { timeout: 15_000 });
+    await expect(page.locator('.win-streak')).toContainText('Today’s deal solved');
+    await expect(page.locator('.win-streak')).toContainText('2 days in a row');
+    const log = await page.evaluate(() => JSON.parse(localStorage.getItem('solitaire.daily') ?? '{}'));
+    expect(Object.keys(log).sort()).toEqual(['2026-11-19', DAY]);
   });
 });

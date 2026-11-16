@@ -4,6 +4,7 @@
  * deal is handed out, the worker starts on the next.
  */
 
+import { dailyDeal } from '../engine/daily';
 import type { KlondikeOptions } from '../engine/klondike';
 import { randomDealNumber } from '../engine/rng';
 import { SolverClient } from './solver-client';
@@ -16,6 +17,23 @@ const keyOf = (options: KlondikeOptions): string => `${options.drawCount}/${opti
 export class WinnableDeals {
   private readonly solver = new SolverClient();
   private readonly ready = new Map<string, Promise<number | null>>();
+  private readonly dailies = new Map<string, Promise<number>>();
+
+  /**
+   * The daily deal for `day` with these rules. Every player must get the same
+   * deal, so without a worker it is worked out here instead (a moment's pause).
+   */
+  daily(day: string, options: KlondikeOptions): Promise<number> {
+    const key = `${day}/${keyOf(options)}`;
+    let found = this.dailies.get(key);
+    if (!found) {
+      found = this.solver
+        .ask({ kind: 'daily', day, options })
+        .then((answer) => answer?.seed ?? dailyDeal(day, options));
+      this.dailies.set(key, found);
+    }
+    return found;
+  }
 
   /** Starts finding a deal for these rules, if one is not already ready or on its way. */
   prepare(options: KlondikeOptions): void {
