@@ -223,6 +223,9 @@ function impulse(ctx: AudioContext): AudioBuffer {
 // Playback
 // ---------------------------------------------------------------------------
 
+/** Overall output level; kept low so the sounds stay a subtle effect. */
+const OUTPUT_LEVEL = 0.7;
+
 /** Base level of each sound before the caller's volume. */
 const LEVELS: Record<SoundName, number> = {
   place: 0.62,
@@ -290,7 +293,10 @@ export class SoundBoard {
     const compressor = ctx.createDynamicsCompressor();
     compressor.threshold.value = -14;
     compressor.ratio.value = 4;
-    this.master.connect(compressor).connect(ctx.destination);
+    // Overall loudness, after the compressor so the whole mix drops evenly.
+    const output = ctx.createGain();
+    output.gain.value = OUTPUT_LEVEL;
+    this.master.connect(compressor).connect(output).connect(ctx.destination);
 
     // Dry signal plus a little room.
     this.input = ctx.createGain();
