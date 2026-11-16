@@ -10,7 +10,7 @@ Updated 16 November 2026.
 
 | Phase | State |
 |---|---|
-| 0. Foundations | Done, except hosting, which needs your account |
+| 0. Foundations | Done. Git and GitHub, deploys to solitaire.mkjems.dk on every push to main. |
 | 1. Game engine | Done. Unit-tested. |
 | 2. Table and cards | Done. Custom navy and gold card back. |
 | 3. Motion | Done. Spring animation, opening deal, deal-in when continuing a saved game. |
@@ -18,7 +18,7 @@ Updated 16 November 2026.
 | 5. Sound and haptics | Done with synthesised sounds; recorded samples can replace them later. Vibration on Android. |
 | 6. The game around the game | Done: title screen, settings, statistics, how to play, saving and continuing, win celebration, Danish and English. |
 | 7. Pulling ahead | Hints done (rule-based). Solver, winnable deals, daily deal and themes still to do. |
-| 8. Mobile and install | Mostly done: large-print cards on small screens, side layout for phones held sideways, page scrolls to hide browser bars, full screen on Android, installable with icon, works offline after the first visit. Still to do: testing on real devices. |
+| 8. Mobile and install | Mostly done: large-print cards on phones (half-figure court cards), side layout for phones held sideways, page scrolls to hide browser bars, full screen on Android, installable with icon, works offline after the first visit. Tuned through rounds of testing on a real iPhone. Still to do: testing on an Android phone. |
 | 9–11 | Not started |
 
 ## 1. What we are competing with

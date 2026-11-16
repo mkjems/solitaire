@@ -44,3 +44,16 @@ The first `npm run test:e2e` may need `npx playwright install chromium`.
 ## What is saved in the browser
 
 Settings, statistics and the game in progress are kept in `localStorage` under keys starting `solitaire.`. Clearing site data resets them.
+
+## Deploying
+
+Live at https://solitaire.mkjems.dk. Every push to `main` runs
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml): the checks and browser tests, then a
+Docker image (the built game served by nginx, see [Dockerfile](Dockerfile) and
+[docker/nginx.conf](docker/nginx.conf)) pushed to `ghcr.io/mkjems/solitaire`, then
+`docker compose pull && up` in `/opt/solitaire` on the VPS. The container listens on
+`127.0.0.1:8086`; Caddy, configured in the separate infrastructure repository, serves it publicly.
+[compose.yaml](compose.yaml) is a copy of the one on the VPS.
+
+Built scripts and styles are cached for a year (their names change with every build). Everything
+else is revalidated on each visit, so new card art and service worker updates arrive at once.

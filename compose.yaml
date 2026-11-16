@@ -1,0 +1,7 @@
+# Copy of /opt/solitaire/compose.yaml on the VPS.
+services:
+  solitaire:
+    image: ghcr.io/mkjems/solitaire:latest
+    ports:
+      - "127.0.0.1:8086:8080"
+    restart: unless-stopped

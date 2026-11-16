@@ -1,0 +1,14 @@
+.git
+.github
+.DS_Store
+.env
+.env.*
+.playwright-mcp
+
+node_modules
+dist
+coverage
+test-results
+playwright-report
+
+*.log
