@@ -31,8 +31,8 @@ function applyParams(settings: Settings, params: URLSearchParams): Settings {
 async function start(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const { code, strings } = pickLanguage();
+  // The page title is left as written in the HTML: search engines read it after scripts run.
   document.documentElement.lang = code;
-  document.title = strings.title;
 
   let settings = applyParams(loadSettings(), params);
   let stats = loadStats();
