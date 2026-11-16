@@ -16,6 +16,9 @@
   --ink: 5 22 14;
   --ink-lift: 10 38 24;
   --ink-deep: 1 10 5;
+
+  /* The felt's grain, laid over the table and the menu. */
+  --felt-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.62 0 0 0 -0.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Typed, so a change of felt fades from one colour to the next. */
@@ -173,7 +176,7 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.62 0 0 0 -0.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: var(--felt-grain);
 }
 
 /* Vignette: the light falls off towards the edges of the table. */
@@ -856,7 +859,10 @@ button.quiet:hover:not(:disabled) {
   color: var(--cream);
   border: 1px solid var(--gold-dim);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgb(var(--ink-lift) / 0.97), rgb(var(--ink) / 0.97));
+  /* The same felt as the table, lit from above. */
+  background:
+    var(--felt-grain),
+    radial-gradient(140% 100% at 50% 0%, var(--felt-2), var(--felt-3));
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
 }
 
@@ -1003,10 +1009,10 @@ button.swatch:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-/* The chosen one wears a gold ring, set off from it by the panel's colour. */
+/* The chosen one wears a gold ring, set off from it by the panel's felt. */
 button.swatch.is-selected {
   box-shadow:
-    0 0 0 2px rgb(var(--ink)),
+    0 0 0 2px var(--felt-3),
     0 0 0 3.5px var(--gold);
 }
 
