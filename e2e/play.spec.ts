@@ -6,6 +6,7 @@
 import { type Page, expect, test } from '@playwright/test';
 import { KlondikeGame } from '../src/engine/game';
 import { hint } from '../src/engine/hint';
+import { solve } from '../src/engine/solver';
 import {
   DEFAULT_OPTIONS,
   type KlondikeState,
@@ -388,4 +389,27 @@ test.describe('pages per language', () => {
     await expect(page.locator('[data-action=start]')).not.toHaveText('Læg kortene ud');
     await context.close();
   });
+});
+
+test('every deal can be won, unless any deal is chosen', async ({ page }) => {
+  const dealNumber = async () => {
+    const text = (await page.locator('.hud-status').textContent()) ?? '';
+    return Number(text.match(/#(\d+)/)?.[1]);
+  };
+  await page.goto('/?lang=en');
+  await page.locator('[data-action=start]').click();
+  await waitForDeal(page);
+  const first = await dealNumber();
+  expect(solve(deal(first, DEFAULT_OPTIONS)).solved, `deal ${first}`).toBe(true);
+
+  await page.locator('[data-action=new]').click();
+  await expect.poll(dealNumber).not.toBe(first);
+  await waitForDeal(page);
+  const second = await dealNumber();
+  expect(solve(deal(second, DEFAULT_OPTIONS)).solved, `deal ${second}`).toBe(true);
+
+  // The setting is remembered.
+  await page.locator('[data-action=menu]').click();
+  await page.locator('[data-action=set-deals][data-value=false]').click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('solitaire.settings') ?? '{}').winnable)).toBe(false);
 });

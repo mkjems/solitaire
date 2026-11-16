@@ -125,6 +125,7 @@ export class Hud {
   private readonly tabs = new Map<Tab, { tab: HTMLButtonElement; page: HTMLElement }>();
   private readonly drawChoice: ReturnType<typeof segmented<DrawCount>>;
   private readonly scoringChoice: ReturnType<typeof segmented<ScoringMode>>;
+  private readonly dealsChoice: ReturnType<typeof segmented<boolean>>;
   private readonly soundChoice: ReturnType<typeof segmented<boolean>>;
   private readonly nextGameNote: HTMLElement;
   private readonly statsBody: HTMLElement;
@@ -232,6 +233,14 @@ export class Hud {
       SCORING_MODES.map((value) => ({ value, label: scoringLabels[value] })),
       (scoring) => this.change({ ...this.settings, scoring }),
     );
+    this.dealsChoice = segmented<boolean>(
+      'deals',
+      [
+        { value: true, label: strings.dealsWinnable },
+        { value: false, label: strings.dealsAny },
+      ],
+      (winnable) => this.change({ ...this.settings, winnable }),
+    );
     this.soundChoice = segmented<boolean>(
       'sound',
       [
@@ -255,6 +264,7 @@ export class Hud {
     gamePage.append(
       setting(strings.draw, this.drawChoice.el),
       setting(strings.scoring, this.scoringChoice.el),
+      setting(strings.deals, this.dealsChoice.el),
       setting(strings.sound, this.soundChoice.el),
     );
     if (document.fullscreenEnabled) {
@@ -440,6 +450,7 @@ export class Hud {
   private renderSettings(): void {
     this.drawChoice.set(this.settings.drawCount);
     this.scoringChoice.set(this.settings.scoring);
+    this.dealsChoice.set(this.settings.winnable);
     this.soundChoice.set(this.settings.sound);
     const current = this.table.state.options;
     const pending =

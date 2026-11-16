@@ -35,12 +35,15 @@ const en = {
   scoringStandard: 'Standard',
   scoringTimed: 'Timed',
   scoringVegas: 'Vegas',
+  deals: 'Deals',
+  dealsWinnable: 'Winnable',
+  dealsAny: 'Any',
   sound: 'Sound',
   screen: 'Screen',
   swipeTip: 'Swipe up on the table to hide the browser bars',
   on: 'On',
   off: 'Off',
-  nextGame: 'Draw and scoring apply from your next game.',
+  nextGame: 'Changes to the rules apply from your next game.',
   newGameNow: 'New game now',
 
   statsDraw1: 'Draw one',
@@ -69,6 +72,10 @@ const en = {
     [
       'Moving cards',
       'Drag cards where you want them, or tap a card to send it to the best place. Right-click works as a tap. Hidden cards turn over by themselves.',
+    ],
+    [
+      'Deals',
+      'With winnable deals, the computer plays each deal through before you get it, so every game can be won. Choose Any for fully random deals, some of which cannot be won.',
     ],
     [
       'On a phone',
@@ -115,12 +122,15 @@ const da: Strings = {
   scoringStandard: 'Standard',
   scoringTimed: 'Med tid',
   scoringVegas: 'Vegas',
+  deals: 'Kabaler',
+  dealsWinnable: 'Kan gå op',
+  dealsAny: 'Alle',
   sound: 'Lyd',
   screen: 'Skærm',
   swipeTip: 'Stryg op på bordet for at skjule browserens bjælker',
   on: 'Til',
   off: 'Fra',
-  nextGame: 'Træk og point gælder fra næste spil.',
+  nextGame: 'Ændringer i reglerne gælder fra næste spil.',
   newGameNow: 'Nyt spil nu',
 
   statsDraw1: 'Træk ét',
@@ -149,6 +159,10 @@ const da: Strings = {
     [
       'Flyt kort',
       'Træk kortene derhen, hvor du vil have dem, eller tryk på et kort for at sende det til det bedste sted. Højreklik virker som et tryk. Skjulte kort vender sig selv.',
+    ],
+    [
+      'Kabaler',
+      'Med Kan gå op spiller computeren hver kabale igennem, før du får den, så alle spil kan gå op. Vælg Alle for helt tilfældige kabaler, hvoraf nogle ikke kan gå op.',
     ],
     [
       'På en telefon',

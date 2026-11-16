@@ -2,6 +2,7 @@ import './styles.css';
 import type { KlondikeOptions, ScoringMode } from './engine/klondike';
 import { SoundBoard } from './ui/audio';
 import { celebrate, stopCelebration } from './ui/celebrate';
+import { WinnableDeals } from './ui/deals';
 import { Hud, hudInsets } from './ui/hud';
 import { emptyStats, recordStart, recordWin } from './ui/stats';
 import {
@@ -89,10 +90,25 @@ async function start(): Promise<void> {
     noHint: () => hudRef.current?.say(strings.noHint),
   });
 
-  const newGame = (seed?: number): void => {
+  // Winnable deals come from the solver in a worker; one is kept ready for the rules in use.
+  const deals = new WinnableDeals();
+  if (settings.winnable) deals.prepare(options());
+  let newGameRequest = 0;
+  /** Whether the deal on the table was picked by the solver (rather than by number or at random). */
+  let dealFromSolver = false;
+
+  /** Deals `seed`, or else a winnable deal (if chosen) or a random one. */
+  const newGame = async (seed?: number): Promise<void> => {
+    const request = ++newGameRequest;
+    const rules = options();
+    const fromSolver = seed === undefined && settings.winnable;
+    const dealNumber = fromSolver ? await deals.next(rules) : seed;
+    // A newer request (a second tap on New game) replaces this one.
+    if (request !== newGameRequest) return;
+    dealFromSolver = fromSolver;
     stopCelebration(tableRoot);
-    table.setOptions(options());
-    table.newGame(seed);
+    table.setOptions(rules);
+    table.newGame(dealNumber);
   };
 
   const toggleFullScreen = (): void => {
@@ -105,14 +121,22 @@ async function start(): Promise<void> {
     table,
     strings,
     {
-      newGame: () => newGame(),
+      newGame: () => void newGame(),
       changeSettings: (next) => {
         const optionsChanged = next.drawCount !== settings.drawCount || next.scoring !== settings.scoring;
+        const dealsChanged = next.winnable !== settings.winnable;
         settings = next;
         saveSettings(settings);
         sounds.enabled = settings.sound;
-        // A game that has not started yet is simply dealt again with the new rules.
-        if (optionsChanged && !table.hasStarted && table.phase === 'playing') newGame(table.state.seed);
+        if (settings.winnable) deals.prepare(options());
+        // A game that has not started yet is dealt again with the new settings. A deal
+        // the solver picked is only known to be winnable with the rules it was picked
+        // for, so it is replaced, as is any deal when winnable deals are switched on.
+        // A deal asked for by number keeps its number.
+        if ((optionsChanged || dealsChanged) && !table.hasStarted && table.phase === 'playing') {
+          const replace = settings.winnable && (dealsChanged || dealFromSolver);
+          void newGame(replace ? undefined : table.state.seed);
+        }
       },
       resetStats: () => {
         stats = emptyStats();
@@ -153,7 +177,7 @@ async function start(): Promise<void> {
     } else if (key === 'h') {
       table.showHint();
     } else if (key === 'n') {
-      newGame();
+      void newGame();
     } else if ((key === ' ' || key === 'd') && !(event.target instanceof HTMLButtonElement)) {
       event.preventDefault();
       table.drawOrRecycle();
@@ -183,7 +207,7 @@ async function start(): Promise<void> {
   if (choice === 'resume' && saved) {
     table.resume(saved.seed, saved.options, saved.moves, saved.seconds);
   } else {
-    newGame(dealNumber);
+    void newGame(dealNumber);
   }
 
   // Once, in a phone browser: how to get the browser bars out of the way.

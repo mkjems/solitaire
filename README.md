@@ -36,7 +36,9 @@ The first `npm run test:e2e` may need `npx playwright install chromium`.
 
 ## Layout
 
-- `src/engine/`: the rules, with no browser code. Fully unit-tested.
+- `src/engine/`: the rules, hints and the solver, with no browser code. Fully unit-tested.
+  `solver.ts` finds a winning line of play for a position; winnable deals are deals it has won
+  (`src/ui/deals.ts` asks for them from a worker, `src/ui/solver.worker.ts`).
 - `src/ui/`: the table, layout, spring animation, cards, sound, controls, statistics, saving.
 - `art/`: source card art. `scripts/prepare-cards.mjs` styles it into `public/cards/`.
 - `site/`: the page text for search engines, per language, and the build step that writes the pages.

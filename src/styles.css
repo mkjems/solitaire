@@ -470,6 +470,16 @@ button:disabled {
     padding: 6px 11px;
     letter-spacing: 0.1em;
   }
+
+  /* The menu uses the full height of a phone held sideways. (More specific than
+     the menu's own rules further down, so these win.) */
+  dialog.panel {
+    --panel-top: 12px;
+  }
+
+  dialog.panel .panel-pages {
+    padding-top: 14px;
+  }
 }
 
 /* ------------------------------------------------- Narrow screens (phones) */
@@ -700,9 +710,11 @@ button.quiet:hover:not(:disabled) {
 
 .panel {
   /* Anchored near the top, so switching tabs does not make the panel jump. */
-  margin: min(14vh, 120px) auto auto;
+  --panel-top: min(14vh, 120px);
+  margin: var(--panel-top) auto auto;
   width: min(560px, calc(100vw - 24px));
-  max-height: min(680px, calc(100dvh - 24px));
+  /* Never past the bottom of the screen: the settings scroll inside instead. */
+  max-height: min(680px, calc(100dvh - var(--panel-top) - 12px));
   padding: 0;
   overflow: hidden;
   display: flex;

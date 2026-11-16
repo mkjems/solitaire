@@ -65,6 +65,7 @@ const en: Page = {
       'Classic Klondike solitaire that you play in your browser, on a computer, tablet or phone. It is free, has no ads and needs no sign-up. Once it has loaded it also works offline, and you can add it to your home screen to play in full screen.',
     featuresHeading: 'Features',
     features: [
+      'Every deal can be won: the computer plays each one through before you get it (or choose fully random deals)',
       'Draw one card or three cards from the stock',
       'Unlimited undo and redo',
       'Hints when you are stuck, and a button that finishes a solved game for you',
@@ -108,6 +109,7 @@ const da: Page = {
       'Klassisk 7-kabale, også kaldet Klondike, som du spiller i browseren på computer, tablet eller telefon. Den er gratis, uden reklamer og kræver intet login. Når den er indlæst, virker den også uden internet, og du kan lægge den på hjemmeskærmen og spille i fuld skærm.',
     featuresHeading: 'Det kan den',
     features: [
+      'Alle kabaler kan gå op: computeren spiller hver kabale igennem, før du får den (eller vælg helt tilfældige)',
       'Træk ét eller tre kort fra bunken',
       'Fortryd og gentag så mange træk du vil',
       'Tips, når du sidder fast, og en knap, der lægger resten op, når kabalen er gået op',

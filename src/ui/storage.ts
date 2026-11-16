@@ -23,6 +23,8 @@ export interface Settings {
   readonly drawCount: DrawCount;
   readonly scoring: ScoringMode;
   readonly sound: boolean;
+  /** Deal only games the solver has won. */
+  readonly winnable: boolean;
 }
 
 export interface SavedGame {
@@ -67,7 +69,11 @@ function cleanOptions(value: unknown): KlondikeOptions {
 export function loadSettings(): Settings {
   const raw = read(KEYS.settings);
   const options = cleanOptions(raw);
-  return { ...options, sound: isRecord(raw) && raw.sound === false ? false : true };
+  return {
+    ...options,
+    sound: !(isRecord(raw) && raw.sound === false),
+    winnable: !(isRecord(raw) && raw.winnable === false),
+  };
 }
 
 export function saveSettings(settings: Settings): void {
