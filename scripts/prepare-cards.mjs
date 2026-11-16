@@ -4,6 +4,7 @@
 //   - a warm paper tone and a soft edge in place of pure white with a black outline
 //   - deeper red, softer black and richer court-card colours
 //   - removal of the source site's name from the ace of spades
+//   - the card back in each of the colours players can choose
 //
 // It also builds a large-print set (public/cards/large) for small screens:
 // a big rank and suit in the top corners, where they stay visible when the
@@ -101,5 +102,26 @@ for (const name of await readdir(source)) {
 
 if (count !== 52) throw new Error(`Expected 52 card faces, found ${count}`);
 
-await writeFile(new URL('back.svg', target), await readFile(backSource, 'utf8'));
-console.log(`Prepared ${count} card faces, ${count} large-print faces and the card back in public/cards`);
+// The card back in each of its colours. The source is navy; the others swap
+// its panel gradient and medallion for their own colours (the gold stays).
+const back = await readFile(backSource, 'utf8');
+const NAVY = ['#1d3670', '#11234e', '#0a1634', '#0c1a3d'];
+const BACKS = {
+  navy: NAVY,
+  burgundy: ['#7e2536', '#5a1725', '#360b15', '#3f0e19'],
+  emerald: ['#1f6c46', '#144a30', '#0a2d1c', '#0c3421'],
+  black: ['#3b3b40', '#232326', '#0f0f11', '#151517'],
+};
+for (const [name, colours] of Object.entries(BACKS)) {
+  let svg = back;
+  NAVY.forEach((from, i) => {
+    if (!svg.includes(from)) throw new Error(`back.svg: colour ${from} not found`);
+    svg = svg.replaceAll(from, colours[i]);
+  });
+  await writeFile(new URL(`back-${name}.svg`, target), svg);
+}
+// The plain name too, for anything that still asks for it.
+await writeFile(new URL('back.svg', target), back);
+console.log(
+  `Prepared ${count} card faces, ${count} large-print faces and ${Object.keys(BACKS).length} card backs in public/cards`,
+);

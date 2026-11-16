@@ -6,6 +6,7 @@ import { type ModeStats, type Stats, winRate } from './stats';
 import { SCORING_MODES, type Settings } from './storage';
 import type { Strings } from './strings';
 import type { Table } from './table';
+import { BACKS, type Back, FELTS, FELT_SWATCH, type Felt, backUrl } from './theme';
 
 /** The daily deal, as the HUD shows it. */
 export interface DailyInfo {
@@ -87,17 +88,26 @@ function stat(label: string, className = ''): { el: HTMLElement; value: HTMLElem
   return { el: node, value };
 }
 
-/** A row of mutually exclusive choices. */
+/**
+ * A row of mutually exclusive choices. With `swatch`, each choice is drawn as
+ * a sample of what it looks like (its label is then read out, and shown on hover).
+ */
 function segmented<T extends string | number | boolean>(
   name: string,
-  choices: readonly { value: T; label: string }[],
+  choices: readonly { value: T; label: string; swatch?: string }[],
   onPick: (value: T) => void,
 ): { el: HTMLElement; set: (value: T) => void } {
-  const group = el('div', 'segmented');
+  const swatches = choices.some((choice) => choice.swatch);
+  const group = el('div', swatches ? 'swatches' : 'segmented');
   group.setAttribute('role', 'radiogroup');
   group.setAttribute('aria-label', name);
   const buttons = choices.map((choice) => {
-    const node = button(choice.label, `set-${name}`);
+    const node = button(swatches ? '' : choice.label, `set-${name}`, swatches ? `swatch swatch-${name}` : '');
+    if (choice.swatch) {
+      node.style.background = choice.swatch;
+      node.setAttribute('aria-label', choice.label);
+      node.title = choice.label;
+    }
     node.dataset.value = String(choice.value);
     node.setAttribute('role', 'radio');
     node.addEventListener('click', () => onPick(choice.value));
@@ -144,6 +154,8 @@ export class Hud {
   private readonly deadEndsChoice: ReturnType<typeof segmented<boolean>>;
   private readonly notice: HTMLElement;
   private readonly soundChoice: ReturnType<typeof segmented<boolean>>;
+  private readonly feltChoice: ReturnType<typeof segmented<Felt>>;
+  private readonly backChoice: ReturnType<typeof segmented<Back>>;
   private readonly nextGameNote: HTMLElement;
   private readonly statsBody: HTMLElement;
   private readonly resetButton: HTMLButtonElement;
@@ -274,6 +286,20 @@ export class Hud {
       ],
       (deadEnds) => this.change({ ...this.settings, deadEnds }),
     );
+    this.feltChoice = segmented<Felt>(
+      'felt',
+      FELTS.map((value) => ({ value, label: strings.felts[value], swatch: FELT_SWATCH[value] })),
+      (felt) => this.change({ ...this.settings, felt }),
+    );
+    this.backChoice = segmented<Back>(
+      'back',
+      BACKS.map((value) => ({
+        value,
+        label: strings.backNames[value],
+        swatch: `url("${backUrl(value)}") center / cover`,
+      })),
+      (back) => this.change({ ...this.settings, back }),
+    );
     this.soundChoice = segmented<boolean>(
       'sound',
       [
@@ -300,6 +326,8 @@ export class Hud {
       setting(strings.scoring, this.scoringChoice.el),
       setting(strings.deals, this.dealsChoice.el),
       setting(strings.deadEnds, this.deadEndsChoice.el),
+      setting(strings.felt, this.feltChoice.el),
+      setting(strings.backs, this.backChoice.el),
       setting(strings.sound, this.soundChoice.el),
     );
     if (document.fullscreenEnabled) {
@@ -559,6 +587,8 @@ export class Hud {
     this.scoringChoice.set(this.settings.scoring);
     this.dealsChoice.set(this.settings.winnable);
     this.deadEndsChoice.set(this.settings.deadEnds);
+    this.feltChoice.set(this.settings.felt);
+    this.backChoice.set(this.settings.back);
     this.dailyStatus.textContent = this.daily.solvedToday
       ? [`✓ ${this.strings.solvedToday}`, this.streakText()].filter(Boolean).join(' · ')
       : this.streakText();

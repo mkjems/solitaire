@@ -12,6 +12,7 @@ import {
   type ScoringMode,
 } from '../engine/klondike';
 import { type DailyLog, type Stats, emptyStats } from './stats';
+import { BACKS, type Back, FELTS, type Felt } from './theme';
 
 const KEYS = {
   settings: 'solitaire.settings',
@@ -28,6 +29,8 @@ export interface Settings {
   readonly winnable: boolean;
   /** Say so when the game in progress can no longer be won. */
   readonly deadEnds: boolean;
+  readonly felt: Felt;
+  readonly back: Back;
 }
 
 export interface SavedGame {
@@ -79,6 +82,8 @@ export function loadSettings(): Settings {
     sound: !(isRecord(raw) && raw.sound === false),
     winnable: !(isRecord(raw) && raw.winnable === false),
     deadEnds: !(isRecord(raw) && raw.deadEnds === false),
+    felt: isRecord(raw) && FELTS.includes(raw.felt as Felt) ? (raw.felt as Felt) : 'emerald',
+    back: isRecord(raw) && BACKS.includes(raw.back as Back) ? (raw.back as Back) : 'navy',
   };
 }
 

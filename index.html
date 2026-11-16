@@ -19,6 +19,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- The player's felt, laid before anything is drawn (see src/ui/theme.ts). -->
+    <script>
+      try {
+        const felt = JSON.parse(localStorage.getItem('solitaire.settings') || '{}').felt;
+        if (typeof felt === 'string') document.documentElement.dataset.felt = felt;
+      } catch {}
+    </script>
     <!-- Cookie-free visit counting, shared with the other mkjems.dk sites. -->
     <script>window.goatcounter = { path: (p) => location.host + p };</script>
     <script data-goatcounter="https://stats.mkjems.dk/count" async src="//stats.mkjems.dk/count.js"></script>

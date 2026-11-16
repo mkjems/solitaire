@@ -42,6 +42,8 @@ The first `npm run test:e2e` may need `npx playwright install chromium`.
   are deals it has won. It runs in workers (`src/ui/solver.worker.ts`): `src/ui/deals.ts` asks for
   winnable deals and the daily deal (`src/engine/daily.ts`), `src/ui/advisor.ts` for hints and dead ends.
 - `src/ui/`: the table, layout, spring animation, cards, sound, controls, statistics, saving.
+  `theme.ts` lists the felts and card backs; their colours are in `styles.css` (`data-felt`) and
+  `scripts/prepare-cards.mjs` (the backs).
 - `art/`: source card art. `scripts/prepare-cards.mjs` styles it into `public/cards/`.
 - `site/`: the page text for search engines, per language, and the build step that writes the pages.
 - `e2e/`: browser tests.

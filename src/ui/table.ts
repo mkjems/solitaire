@@ -25,6 +25,7 @@ import {
 } from '../engine/klondike';
 import { randomDealNumber } from '../engine/rng';
 import { Animator } from './animator';
+import { assetUrl } from './assets';
 import type { SoundBoard } from './audio';
 import { CardView } from './cardview';
 import {
@@ -39,6 +40,7 @@ import {
   overlapArea,
 } from './layout';
 import { SPRINGS, type SpringConfig } from './spring';
+import { type Back, backUrl } from './theme';
 
 export type Phase = 'loading' | 'dealing' | 'playing' | 'finishing' | 'won';
 
@@ -75,11 +77,6 @@ const LARGE_PRINT_BELOW = 84;
 
 function wantsLargePrint(layout: Layout): boolean {
   return layout.cardW < LARGE_PRINT_BELOW;
-}
-
-/** The address of a file in public/, from any page (/ or /da/). */
-function assetUrl(path: string): string {
-  return new URL(`${import.meta.env.BASE_URL}${path}`, location.href).href;
 }
 
 /** Pentatonic steps for foundation chimes, Ace to King: each card home rings a little higher. */
@@ -132,6 +129,8 @@ function vibrate(pattern: number | number[]): void {
 
 export class Table {
   phase: Phase = 'loading';
+  /** The card back in use. Set before load() to avoid loading the default first. */
+  private backUrl = backUrl('navy');
 
   private game: KlondikeGame;
   private options: KlondikeOptions;
@@ -188,7 +187,7 @@ export class Table {
     for (let i = 0; i < TABLEAU_PILES; i++) addSlot(`tableau-${i}`, 'tableau');
 
     this.layout = this.measure();
-    root.style.setProperty('--card-back', `url("${assetUrl('cards/back.svg')}")`);
+    root.style.setProperty('--card-back', `url("${this.backUrl}")`);
     for (const id of fullDeck()) {
       const view = new CardView(id, this.faceUrl(id, wantsLargePrint(this.layout)));
       view.onLand = this.onCardLand;
@@ -218,6 +217,21 @@ export class Table {
 
   get state(): KlondikeState {
     return this.game.state;
+  }
+
+  /** Changes the card backs. The new back is loaded before it replaces the old, so nothing flickers. */
+  setCardBack(back: Back): void {
+    const url = backUrl(back);
+    if (url === this.backUrl) return;
+    this.backUrl = url;
+    const image = new Image();
+    image.src = url;
+    void image
+      .decode()
+      .catch(() => undefined)
+      .then(() => {
+        if (this.backUrl === url) this.root.style.setProperty('--card-back', `url("${url}")`);
+      });
   }
 
   /** The moves played so far, for saving the game. */
@@ -256,7 +270,7 @@ export class Table {
   async load(): Promise<void> {
     const images = Array.from(this.cardLayer.querySelectorAll('img'));
     const back = new Image();
-    back.src = assetUrl('cards/back.svg');
+    back.src = this.backUrl;
     const decoded = Promise.all([...images, back].map((img) => img.decode().catch(() => undefined)));
     const timeout = new Promise((resolve) => setTimeout(resolve, 3000));
     await Promise.race([decoded, timeout]);

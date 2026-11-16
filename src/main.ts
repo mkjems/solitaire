@@ -21,6 +21,7 @@ import {
 } from './ui/storage';
 import { pickLanguage } from './ui/strings';
 import { Table } from './ui/table';
+import { applyFelt } from './ui/theme';
 
 /** How long a hint waits for the solver before falling back to simple rules. */
 const HINT_PATIENCE = 2500;
@@ -50,6 +51,7 @@ async function start(): Promise<void> {
   document.documentElement.lang = code;
 
   let settings = applyParams(loadSettings(), params);
+  applyFelt(settings.felt);
   let stats = loadStats();
   const options = (): KlondikeOptions => ({ drawCount: settings.drawCount, scoring: settings.scoring });
 
@@ -233,6 +235,8 @@ async function start(): Promise<void> {
         settings = next;
         saveSettings(settings);
         sounds.enabled = settings.sound;
+        applyFelt(settings.felt);
+        table.setCardBack(settings.back);
         if (settings.winnable) deals.prepare(options());
         if (settings.deadEnds) checkDeadEnd();
         else hud.hideDeadEnd();
@@ -307,6 +311,7 @@ async function start(): Promise<void> {
   });
   window.addEventListener('pagehide', save);
 
+  table.setCardBack(settings.back);
   await table.load();
   table.relayout();
 

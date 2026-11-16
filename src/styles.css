@@ -4,6 +4,84 @@
   --gold-dim: rgba(230, 200, 121, 0.42);
   --cream: #f4ecd6;
   --card-radius: 5% / 3.5714%; /* equal corner radius on a 5:7 card */
+
+  /* The table's felt, from the light centre to the dark edge, and the colour
+     behind it. The ink colours tint the panels and messages to match the felt
+     (as "r g b", for rgb(var(--ink) / alpha)). Emerald is the default. */
+  --felt-1: #218453;
+  --felt-2: #17693f;
+  --felt-3: #0d4a2a;
+  --felt-4: #062c19;
+  --felt-base: #07301c;
+  --ink: 5 22 14;
+  --ink-lift: 10 38 24;
+  --ink-deep: 1 10 5;
+}
+
+/* Typed, so a change of felt fades from one colour to the next. */
+@property --felt-1 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #218453;
+}
+
+@property --felt-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #17693f;
+}
+
+@property --felt-3 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0d4a2a;
+}
+
+@property --felt-4 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #062c19;
+}
+
+:root {
+  transition:
+    --felt-1 0.6s ease,
+    --felt-2 0.6s ease,
+    --felt-3 0.6s ease,
+    --felt-4 0.6s ease;
+}
+
+:root[data-felt='midnight'] {
+  --felt-1: #2a5a8c;
+  --felt-2: #1e4570;
+  --felt-3: #122d4d;
+  --felt-4: #08182e;
+  --felt-base: #0a1b33;
+  --ink: 5 14 28;
+  --ink-lift: 12 28 50;
+  --ink-deep: 1 5 12;
+}
+
+:root[data-felt='burgundy'] {
+  --felt-1: #8a2a3a;
+  --felt-2: #6c1f2d;
+  --felt-3: #4a131e;
+  --felt-4: #28080f;
+  --felt-base: #2e0b13;
+  --ink: 24 6 10;
+  --ink-lift: 44 13 19;
+  --ink-deep: 10 2 4;
+}
+
+:root[data-felt='graphite'] {
+  --felt-1: #55595f;
+  --felt-2: #41444a;
+  --felt-3: #2b2d31;
+  --felt-4: #151618;
+  --felt-base: #18191c;
+  --ink: 16 17 19;
+  --ink-lift: 31 32 35;
+  --ink-deep: 5 5 6;
 }
 
 * {
@@ -16,7 +94,7 @@ body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #07301c;
+  background: var(--felt-base);
 }
 
 body {
@@ -82,10 +160,10 @@ body {
   /* Felt, lit from above the centre. */
   background: radial-gradient(
     125% 95% at 50% 28%,
-    #218453 0%,
-    #17693f 34%,
-    #0d4a2a 66%,
-    #062c19 100%
+    var(--felt-1) 0%,
+    var(--felt-2) 34%,
+    var(--felt-3) 66%,
+    var(--felt-4) 100%
   );
 }
 
@@ -308,7 +386,7 @@ button {
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--gold);
-  background: rgba(6, 26, 16, 0.5);
+  background: rgb(var(--ink) / 0.5);
   border: 1px solid var(--gold-dim);
   border-radius: 999px;
   padding: 8px 16px;
@@ -418,7 +496,7 @@ button:disabled {
   text-align: center;
   border: 1px solid var(--gold-dim);
   border-radius: 18px;
-  background: rgba(5, 22, 14, 0.82);
+  background: rgb(var(--ink) / 0.82);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
 }
 
@@ -579,7 +657,7 @@ button:disabled {
   padding: 10px 20px;
   border-radius: 999px;
   border: 1px solid var(--gold-dim);
-  background: rgba(5, 22, 14, 0.88);
+  background: rgb(var(--ink) / 0.88);
   color: var(--cream);
   font-size: 13.5px;
   letter-spacing: 0.03em;
@@ -616,7 +694,7 @@ button:disabled {
   padding: 10px 12px 10px 22px;
   border-radius: 16px;
   border: 1px solid var(--gold-dim);
-  background: rgba(5, 22, 14, 0.94);
+  background: rgb(var(--ink) / 0.94);
   color: var(--cream);
   font-size: 14px;
   letter-spacing: 0.02em;
@@ -683,7 +761,7 @@ button:disabled {
   place-items: center;
   padding: 24px;
   text-align: center;
-  background: radial-gradient(90% 70% at 50% 45%, rgba(4, 22, 13, 0.35), rgba(2, 12, 7, 0.78));
+  background: radial-gradient(90% 70% at 50% 45%, rgb(var(--ink) / 0.35), rgb(var(--ink-deep) / 0.78));
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
   opacity: 0;
@@ -778,7 +856,7 @@ button.quiet:hover:not(:disabled) {
   color: var(--cream);
   border: 1px solid var(--gold-dim);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(10, 38, 24, 0.97), rgba(5, 22, 14, 0.97));
+  background: linear-gradient(180deg, rgb(var(--ink-lift) / 0.97), rgb(var(--ink) / 0.97));
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
 }
 
@@ -787,7 +865,7 @@ button.quiet:hover:not(:disabled) {
 }
 
 .panel::backdrop {
-  background: rgba(1, 10, 5, 0.55);
+  background: rgb(var(--ink-deep) / 0.55);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -893,6 +971,43 @@ button.panel-tab.is-selected {
 
 .daily-status:empty {
   display: none;
+}
+
+/* Felt and card-back choices, drawn as samples of themselves. */
+.swatches {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button.swatch {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+button.swatch-back {
+  width: 26px;
+  height: 36px;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+button.swatch:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* The chosen one wears a gold ring, set off from it by the panel's colour. */
+button.swatch.is-selected {
+  box-shadow:
+    0 0 0 2px rgb(var(--ink)),
+    0 0 0 3.5px var(--gold);
 }
 
 .segmented {
@@ -1028,6 +1143,7 @@ button.panel-tab.is-selected {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root,
   .title-screen,
   .title-inner,
   .toast,

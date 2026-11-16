@@ -559,3 +559,25 @@ test.describe('daily deal', () => {
     expect(Object.keys(log).sort()).toEqual(['2026-11-19', DAY]);
   });
 });
+
+test('the table and card backs can be changed, and stay changed', async ({ page }) => {
+  await open(page, `?deal=${SEED}&lang=en`);
+  await page.locator('[data-action=menu]').click();
+  await page.locator('[data-action=set-felt][data-value=midnight]').click();
+  await page.locator('[data-action=set-back][data-value=burgundy]').click();
+  const look = () =>
+    page.evaluate(() => ({
+      felt: document.documentElement.dataset.felt,
+      bars: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
+      back: document.getElementById('table')?.style.getPropertyValue('--card-back') ?? '',
+    }));
+  await expect.poll(async () => (await look()).back).toContain('back-burgundy.svg');
+  expect(await look()).toMatchObject({ felt: 'midnight', bars: '#0a1b33' });
+
+  // After a reload the felt is there from the very start, before the game's script runs.
+  await page.reload();
+  expect(await page.evaluate(() => document.documentElement.dataset.felt)).toBe('midnight');
+  await page.locator('[data-action=start]').click();
+  await waitForDeal(page);
+  expect((await look()).back).toContain('back-burgundy.svg');
+});

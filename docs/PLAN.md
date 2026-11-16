@@ -17,7 +17,7 @@ Updated 16 November 2026.
 | 4. Drag and drop | Done. Mouse, touch, tap to move, right-click, keyboard. |
 | 5. Sound and haptics | Done with synthesised sounds; recorded samples can replace them later. Vibration on Android. |
 | 6. The game around the game | Done: title screen, settings, statistics, how to play, saving and continuing, win celebration, Danish and English. |
-| 7. Pulling ahead | Solver done (runs in a worker; wins about 81% of draw-one deals). Winnable deals done, on by default. Hints follow a winning line when the solver finds one (rule-based otherwise). Optional dead-end warning with Go back to the last winnable position. Daily deal done: the same winnable deal for everyone each day, worked out in the browser, with days in a row. Still to do: themes. |
+| 7. Pulling ahead | Solver done (runs in a worker; wins about 81% of draw-one deals). Winnable deals done, on by default. Hints follow a winning line when the solver finds one (rule-based otherwise). Optional dead-end warning with Go back to the last winnable position. Daily deal done: the same winnable deal for everyone each day, worked out in the browser, with days in a row. Themes done: four felts and four card backs. Phase complete. |
 | 8. Mobile and install | Mostly done: large-print cards on phones (half-figure court cards), side layout for phones held sideways, page scrolls to hide browser bars, full screen on Android, installable with icon, works offline after the first visit. Tuned through rounds of testing on a real iPhone. Still to do: testing on an Android phone. |
 | 9–11 | Not started |
 
