@@ -31,8 +31,10 @@ function applyParams(settings: Settings, params: URLSearchParams): Settings {
 async function start(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const { code, strings } = pickLanguage();
-  // The page title is left as written in the HTML: search engines read it after scripts run.
   document.documentElement.lang = code;
+  // The English title is left as written in the HTML, since search engines read it after
+  // scripts run; players in other languages see the game's name in their own.
+  if (code !== 'en') document.title = strings.title;
 
   let settings = applyParams(loadSettings(), params);
   let stats = loadStats();
