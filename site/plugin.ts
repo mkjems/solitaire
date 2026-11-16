@@ -6,8 +6,8 @@
 // language is written to <lang>/index.html, and sitemap.xml lists them all.
 
 import type { Plugin } from 'vite';
-import { PAGES } from './pages';
-import { pageFor, renderPage, renderSitemap } from './render';
+import { PAGES } from './pages.ts';
+import { pageFor, renderPage, renderSitemap } from './render.ts';
 
 export function staticPages(): Plugin {
   return {

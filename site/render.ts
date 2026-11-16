@@ -1,7 +1,7 @@
 // Turns the index.html template and a page's text (site/pages.ts) into that
 // page's HTML, and lists all pages in a sitemap. Pure string work, no Vite.
 
-import { AUTHOR, IMAGE_SIZE, type Page, SITE_URL } from './pages';
+import { AUTHOR, IMAGE_SIZE, type Page, SITE_URL } from './pages.ts';
 
 /** Where the page's head tags go in index.html. */
 export const HEAD_MARKER = '<!-- page:head -->';

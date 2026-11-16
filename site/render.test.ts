@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import template from '../index.html?raw';
-import { PAGES, type Page } from './pages';
-import { pageFor, renderPage, renderSitemap } from './render';
+import { PAGES, type Page } from './pages.ts';
+import { pageFor, renderPage, renderSitemap } from './render.ts';
+
 const [en, da] = PAGES as [Page, Page];
 
 /** The parts of a rendered page that search engines and link previews read. */

@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import { staticPages } from './site/plugin';
+import { staticPages } from './site/plugin.ts';
 
 export default defineConfig({
   // Served from the root of its own domain. Paths start at the root so that the
