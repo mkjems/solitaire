@@ -1,39 +1,33 @@
 /**
  * Runs the solver away from the page, so searching never makes the cards stutter.
- * Each request asks for a winnable deal with the given rules.
+ * Two jobs: find a winnable deal with given rules, and analyse a game in progress.
  */
 
-import type { KlondikeOptions } from '../engine/klondike';
+import type { KlondikeOptions, KlondikeState } from '../engine/klondike';
 import { randomDealNumber } from '../engine/rng';
-import { findWinnableDeal } from '../engine/solver';
+import { type SolveResult, analyse, findWinnableDeal } from '../engine/solver';
 
-export interface WinnableRequest {
-  id: number;
-  options: KlondikeOptions;
-}
+export type SolverJob =
+  | { kind: 'winnable'; options: KlondikeOptions }
+  | { kind: 'analyse'; state: KlondikeState };
 
-export interface WinnableReply {
-  id: number;
-  /** A winnable deal number, or null if none was found in time. */
-  seed: number | null;
-  tries: number;
-  ms: number;
-}
+export type SolverAnswer =
+  | { kind: 'winnable'; seed: number | null; tries: number }
+  | { kind: 'analyse'; result: SolveResult };
 
 const MAX_TRIES = 300;
 
+function run(job: SolverJob): SolverAnswer {
+  if (job.kind === 'analyse') return { kind: 'analyse', result: analyse(job.state) };
+  const found = findWinnableDeal(job.options, randomDealNumber, { maxTries: MAX_TRIES });
+  return { kind: 'winnable', seed: found?.seed ?? null, tries: found?.tries ?? MAX_TRIES };
+}
+
 const scope = self as unknown as {
-  onmessage: ((event: MessageEvent<WinnableRequest>) => void) | null;
-  postMessage(reply: WinnableReply): void;
+  onmessage: ((event: MessageEvent<{ id: number; job: SolverJob }>) => void) | null;
+  postMessage(reply: { id: number; answer: SolverAnswer }): void;
 };
 
 scope.onmessage = ({ data }) => {
-  const started = performance.now();
-  const found = findWinnableDeal(data.options, randomDealNumber, { maxTries: MAX_TRIES });
-  scope.postMessage({
-    id: data.id,
-    seed: found?.seed ?? null,
-    tries: found?.tries ?? MAX_TRIES,
-    ms: Math.round(performance.now() - started),
-  });
+  scope.postMessage({ id: data.id, answer: run(data.job) });
 };

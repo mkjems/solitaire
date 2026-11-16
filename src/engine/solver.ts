@@ -12,8 +12,11 @@
  *     left in play could ever need to be placed on it;
  *   - moves tried in order of promise, and moves that cannot help left out.
  *
- * Leaving moves out makes the search fast but not exhaustive, so "not solved"
- * means "no solution found", never "cannot be won".
+ * The fast search also leaves out moves that only rarely help, so when it finds
+ * nothing that means "no solution found", not "cannot be won". The exhaustive
+ * search leaves out only moves that provably never help (it sends only Aces and
+ * twos home by itself, and tries every part of a run), so when it runs out of
+ * positions to try within its budget, the position is lost.
  */
 
 import { type CardId, SUITS, cardId, rankOf, suitOf } from './cards';
@@ -64,11 +67,20 @@ type Step =
 export interface SolveOptions {
   /** Positions to examine before giving up. */
   maxNodes?: number;
+  /** Search every move that could help, so that finding nothing proves the position lost. */
+  exhaustive?: boolean;
 }
 
+/**
+ * - won: `moves` wins from the position.
+ * - lost: no sequence of moves wins (only an exhaustive search says this).
+ * - unknown: no win found within the budget.
+ */
+export type SolveStatus = 'won' | 'lost' | 'unknown';
+
 export interface SolveResult {
-  solved: boolean;
-  /** The winning moves, in the engine's terms, from the given position. Empty if not solved. */
+  status: SolveStatus;
+  /** The winning moves, in the engine's terms, from the given position. Empty unless won. */
   moves: Move[];
   /** Positions examined. */
   nodes: number;
@@ -115,22 +127,24 @@ export class Solver {
   constructor(
     private readonly state: KlondikeState,
     private readonly maxNodes = DEFAULT_MAX_NODES,
+    private readonly exhaustive = false,
   ) {
     this.draw = state.options.drawCount;
     this.unlimited = maxPasses(state.options) === Infinity;
   }
 
   solve(): SolveResult {
-    if (isWon(this.state)) return { solved: true, moves: [], nodes: 0 };
+    if (isWon(this.state)) return { status: 'won', moves: [], nodes: 0 };
     const start = fromState(this.state);
     this.autoplay(start);
-    let solved = false;
+    let status: SolveStatus;
     try {
-      solved = this.search(start);
+      status = this.search(start) ? 'won' : this.exhaustive ? 'lost' : 'unknown';
     } catch (error) {
       if (!(error instanceof OutOfBudget)) throw error;
+      status = 'unknown';
     }
-    return { solved, moves: solved ? this.translate() : [], nodes: this.nodes };
+    return { status, moves: status === 'won' ? this.translate() : [], nodes: this.nodes };
   }
 
   // -------------------------------------------------------------------------
@@ -158,10 +172,16 @@ export class Solver {
     return rank(target) === rank(card) + 1 && red(target) !== red(card);
   }
 
-  /** A card may go home for good once both foundations of the other colour hold the rank below it. */
+  /**
+   * Whether a card can go home without ever being missed. Aces and twos always
+   * can: nothing that needs a place goes on them. The fast search also sends a
+   * card home once both foundations of the other colour hold the rank below it,
+   * which is almost always right; the exhaustive search does not assume it.
+   */
   private safeHome(pos: Position, card: number): boolean {
     const r = rank(card);
     if (r <= 2) return true;
+    if (this.exhaustive) return false;
     const isRed = red(card);
     return pos.found.every((count, s) => RED[s] === isRed || count >= r - 1);
   }
@@ -300,10 +320,11 @@ export class Solver {
         } else if (whole) {
           value = 20; // empties the pile
         } else {
-          // Part of a run: only worth it if the card left on top can then go home.
+          // Part of a run: usually only worth it if the card left on top can then go home.
           const exposed = pile[pile.length - count - 1] as number;
-          if (!this.fitsFoundation(pos, exposed)) continue;
-          value = 60;
+          if (this.fitsFoundation(pos, exposed)) value = 60;
+          else if (this.exhaustive) value = 10;
+          else continue;
         }
         for (let to = 0; to < piles; to++) {
           if (to === from || !this.fitsTableau(pos, lead, to)) continue;
@@ -336,9 +357,11 @@ export class Solver {
       const card = s * 13 + count - 1;
       if (this.safeHome(pos, card)) continue;
       for (let to = 0; to < piles; to++) {
-        if ((pos.tab[to] as number[]).length > 0 && this.fitsTableau(pos, card, to)) {
-          out.push({ step: { t: 'found-tab', suit: s, to }, value: 5 });
-        }
+        if (!this.fitsTableau(pos, card, to)) continue;
+        // A King back into an empty pile: only ever worth trying in the exhaustive search.
+        const toEmpty = (pos.tab[to] as number[]).length === 0;
+        if (toEmpty && (!this.exhaustive || to !== firstEmpty)) continue;
+        out.push({ step: { t: 'found-tab', suit: s, to }, value: 5 });
       }
     }
 
@@ -430,7 +453,21 @@ export class Solver {
 
 /** Tries to win `state`. See the notes at the top of this file. */
 export function solve(state: KlondikeState, options: SolveOptions = {}): SolveResult {
-  return new Solver(state, options.maxNodes ?? DEFAULT_MAX_NODES).solve();
+  return new Solver(state, options.maxNodes ?? DEFAULT_MAX_NODES, options.exhaustive ?? false).solve();
+}
+
+/**
+ * Whether a game in progress can still be won, and how: the fast search first,
+ * then, if it found nothing, the exhaustive one, which can also prove it lost.
+ */
+export function analyse(
+  state: KlondikeState,
+  { fastNodes = DEFAULT_MAX_NODES, exhaustiveNodes = 250_000 } = {},
+): SolveResult {
+  const fast = solve(state, { maxNodes: fastNodes });
+  if (fast.status === 'won') return fast;
+  const thorough = solve(state, { maxNodes: exhaustiveNodes, exhaustive: true });
+  return { ...thorough, nodes: fast.nodes + thorough.nodes };
 }
 
 export interface WinnableDeal {
@@ -450,7 +487,7 @@ export function findWinnableDeal(
 ): WinnableDeal | null {
   for (let tries = 1; tries <= maxTries; tries++) {
     const seed = nextSeed();
-    if (solve(deal(seed, options), { maxNodes }).solved) return { seed, tries };
+    if (solve(deal(seed, options), { maxNodes }).status === 'won') return { seed, tries };
   }
   return null;
 }

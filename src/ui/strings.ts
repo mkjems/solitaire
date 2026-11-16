@@ -38,6 +38,11 @@ const en = {
   deals: 'Deals',
   dealsWinnable: 'Winnable',
   dealsAny: 'Any',
+  deadEnds: 'Dead ends',
+  warnMe: 'Warn me',
+  deadEnd: 'This game can no longer be won.',
+  goBack: 'Go back',
+  neverWinnable: 'This deal could not be won from the start.',
   sound: 'Sound',
   screen: 'Screen',
   swipeTip: 'Swipe up on the table to hide the browser bars',
@@ -72,6 +77,10 @@ const en = {
     [
       'Moving cards',
       'Drag cards where you want them, or tap a card to send it to the best place. Right-click works as a tap. Hidden cards turn over by themselves.',
+    ],
+    [
+      'Hints and dead ends',
+      'A hint shows a move that keeps the game winnable, whenever the computer can find one. If a game can no longer be won, you are told, and Go back takes you back to the last point where it could. You can turn the warning off in the menu.',
     ],
     [
       'Deals',
@@ -125,6 +134,11 @@ const da: Strings = {
   deals: 'Kabaler',
   dealsWinnable: 'Kan gå op',
   dealsAny: 'Alle',
+  deadEnds: 'Blindgyder',
+  warnMe: 'Advar mig',
+  deadEnd: 'Kabalen kan ikke længere gå op.',
+  goBack: 'Gå tilbage',
+  neverWinnable: 'Denne kabale kunne ikke gå op fra starten.',
   sound: 'Lyd',
   screen: 'Skærm',
   swipeTip: 'Stryg op på bordet for at skjule browserens bjælker',
@@ -159,6 +173,10 @@ const da: Strings = {
     [
       'Flyt kort',
       'Træk kortene derhen, hvor du vil have dem, eller tryk på et kort for at sende det til det bedste sted. Højreklik virker som et tryk. Skjulte kort vender sig selv.',
+    ],
+    [
+      'Tips og blindgyder',
+      'Et tip viser et træk, der holder kabalen i live, når computeren kan finde et. Hvis kabalen ikke længere kan gå op, får du besked, og Gå tilbage fører dig tilbage til der, hvor den stadig kunne. Advarslen kan slås fra i menuen.',
     ],
     [
       'Kabaler',

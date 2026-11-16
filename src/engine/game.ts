@@ -40,6 +40,11 @@ export class KlondikeGame {
     return this.past.map((entry) => entry.move);
   }
 
+  /** The positions before each move played, oldest first. */
+  get history(): KlondikeState[] {
+    return this.past.map((entry) => entry.state);
+  }
+
   /** Plays a move if it is legal. Returns whether it was played. */
   play(move: Move): boolean {
     if (!isLegal(this.state, move)) return false;

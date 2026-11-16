@@ -9,6 +9,8 @@ import type { Table } from './table';
 
 export interface HudActions {
   newGame(): void;
+  /** Undo back to the last position from which the game could still be won. */
+  goBack(): void;
   changeSettings(settings: Settings): void;
   resetStats(): void;
   toggleFullScreen(): void;
@@ -126,6 +128,8 @@ export class Hud {
   private readonly drawChoice: ReturnType<typeof segmented<DrawCount>>;
   private readonly scoringChoice: ReturnType<typeof segmented<ScoringMode>>;
   private readonly dealsChoice: ReturnType<typeof segmented<boolean>>;
+  private readonly deadEndsChoice: ReturnType<typeof segmented<boolean>>;
+  private readonly notice: HTMLElement;
   private readonly soundChoice: ReturnType<typeof segmented<boolean>>;
   private readonly nextGameNote: HTMLElement;
   private readonly statsBody: HTMLElement;
@@ -241,6 +245,14 @@ export class Hud {
       ],
       (winnable) => this.change({ ...this.settings, winnable }),
     );
+    this.deadEndsChoice = segmented<boolean>(
+      'dead-ends',
+      [
+        { value: true, label: strings.warnMe },
+        { value: false, label: strings.off },
+      ],
+      (deadEnds) => this.change({ ...this.settings, deadEnds }),
+    );
     this.soundChoice = segmented<boolean>(
       'sound',
       [
@@ -265,6 +277,7 @@ export class Hud {
       setting(strings.draw, this.drawChoice.el),
       setting(strings.scoring, this.scoringChoice.el),
       setting(strings.deals, this.dealsChoice.el),
+      setting(strings.deadEnds, this.deadEndsChoice.el),
       setting(strings.sound, this.soundChoice.el),
     );
     if (document.fullscreenEnabled) {
@@ -307,7 +320,28 @@ export class Hud {
     });
     this.dialog.addEventListener('close', () => this.disarmReset());
 
-    root.append(bar, this.finish, this.toast, this.win, this.dialog);
+    // Said when the game can no longer be won, with the ways out.
+    this.notice = el('div', 'notice');
+    this.notice.setAttribute('role', 'alert');
+    this.notice.hidden = true;
+    const back = button(strings.goBack, 'go-back', 'notice-primary');
+    const fresh = button(strings.newGame, 'notice-new', 'quiet');
+    const dismiss = button('×', 'notice-close', 'notice-close');
+    dismiss.setAttribute('aria-label', strings.close);
+    back.addEventListener('click', () => {
+      this.hideDeadEnd();
+      actions.goBack();
+    });
+    fresh.addEventListener('click', () => {
+      this.hideDeadEnd();
+      actions.newGame();
+    });
+    dismiss.addEventListener('click', () => this.hideDeadEnd());
+    const actionsRow = el('div', 'notice-actions');
+    actionsRow.append(back, fresh);
+    this.notice.append(el('span', 'notice-text', strings.deadEnd), actionsRow, dismiss);
+
+    root.append(bar, this.finish, this.toast, this.notice, this.win, this.dialog);
 
     newGame.addEventListener('click', () => actions.newGame());
     again.addEventListener('click', () => actions.newGame());
@@ -343,6 +377,20 @@ export class Hud {
   }
 
   /** A short message that fades away by itself. */
+  /** Tells the player the game can no longer be won. */
+  showDeadEnd(): void {
+    this.toast.classList.remove('is-visible');
+    this.notice.hidden = false;
+  }
+
+  hideDeadEnd(): void {
+    this.notice.hidden = true;
+  }
+
+  get deadEndShown(): boolean {
+    return !this.notice.hidden;
+  }
+
   say(text: string, ms = 2200): void {
     this.toast.textContent = text;
     this.toast.classList.add('is-visible');
@@ -451,6 +499,7 @@ export class Hud {
     this.drawChoice.set(this.settings.drawCount);
     this.scoringChoice.set(this.settings.scoring);
     this.dealsChoice.set(this.settings.winnable);
+    this.deadEndsChoice.set(this.settings.deadEnds);
     this.soundChoice.set(this.settings.sound);
     const current = this.table.state.options;
     const pending =

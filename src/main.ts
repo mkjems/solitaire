@@ -1,5 +1,6 @@
 import './styles.css';
-import type { KlondikeOptions, ScoringMode } from './engine/klondike';
+import type { KlondikeOptions, KlondikeState, ScoringMode } from './engine/klondike';
+import { Advisor } from './ui/advisor';
 import { SoundBoard } from './ui/audio';
 import { celebrate, stopCelebration } from './ui/celebrate';
 import { WinnableDeals } from './ui/deals';
@@ -17,6 +18,13 @@ import {
 } from './ui/storage';
 import { pickLanguage } from './ui/strings';
 import { Table } from './ui/table';
+
+/** How long a hint waits for the solver before falling back to simple rules. */
+const HINT_PATIENCE = 2500;
+/** How long after a move the dead-end check starts, so quick runs of moves are checked once. */
+const DEAD_END_DELAY = 500;
+/** How many moves Go back looks back for a winnable position. */
+const GO_BACK_LIMIT = 120;
 
 /** Address parameters override the saved settings for this visit: `?draw=3&scoring=vegas`. */
 function applyParams(settings: Settings, params: URLSearchParams): Settings {
@@ -58,10 +66,20 @@ async function start(): Promise<void> {
     saveGame({ seed: table.state.seed, options: table.state.options, moves: table.log, seconds: table.seconds });
   };
 
+  // The dead-end notice: which position it was shown for, and whether the player was warned.
+  const deadEnd: { shownFor: KlondikeState | null; warned: boolean; timer?: number } = {
+    shownFor: null,
+    // Warned once until the game is winnable again (after Go back or undo), not after every move.
+    warned: false,
+  };
+
   const table = new Table(tableRoot, options(), hudInsets, sounds, {
     change: () => {
       hudRef.current?.update();
       save();
+      // The dead-end notice is about one position; any move or undo takes it away.
+      if (table.state !== deadEnd.shownFor) hudRef.current?.hideDeadEnd();
+      checkDeadEnd();
     },
     started: () => {
       stats = recordStart(stats, table.state.options.drawCount);
@@ -88,7 +106,51 @@ async function start(): Promise<void> {
       celebrate(tableRoot, origins, cardW);
     },
     noHint: () => hudRef.current?.say(strings.noHint),
+    // Asked for a hint in a lost game: say so, whatever the dead-end setting.
+    lost: () => showDeadEnd(),
   });
+
+  // The solver's view of the game in progress, for hints and dead ends. It has a
+  // worker of its own, so hints never wait behind deal-finding.
+  const advisor = new Advisor();
+  table.adviser = (state) => advisor.adviceWithin(state, HINT_PATIENCE);
+
+  function showDeadEnd(): void {
+    deadEnd.warned = true;
+    deadEnd.shownFor = table.state;
+    hudRef.current?.showDeadEnd();
+  }
+
+  /** Shortly after each move, asks whether the game can still be won, if the player wants to know. */
+  function checkDeadEnd(): void {
+    window.clearTimeout(deadEnd.timer);
+    if (!settings.deadEnds) return;
+    deadEnd.timer = window.setTimeout(async () => {
+      if (table.phase !== 'playing' || !table.hasStarted) return;
+      const state = table.state;
+      const advice = await advisor.advice(state);
+      if (table.state !== state || table.phase !== 'playing') return;
+      if (advice.status === 'won') deadEnd.warned = false;
+      else if (advice.status === 'lost' && !deadEnd.warned) showDeadEnd();
+    }, DEAD_END_DELAY);
+  }
+
+  /** Undoes back to the last position from which the game could still be won. */
+  async function goBack(): Promise<void> {
+    const history = table.history;
+    const current = table.state;
+    const limit = Math.min(history.length, GO_BACK_LIMIT);
+    for (let steps = 1; steps <= limit; steps++) {
+      const advice = await advisor.advice(history[history.length - steps] as KlondikeState);
+      if (table.state !== current) return; // the player moved on meanwhile
+      if (advice.status !== 'lost') {
+        deadEnd.warned = false;
+        table.undoMoves(steps);
+        return;
+      }
+    }
+    if (limit === history.length) hudRef.current?.say(strings.neverWinnable, 4000);
+  }
 
   // Winnable deals come from the solver in a worker; one is kept ready for the rules in use.
   const deals = new WinnableDeals();
@@ -106,6 +168,8 @@ async function start(): Promise<void> {
     // A newer request (a second tap on New game) replaces this one.
     if (request !== newGameRequest) return;
     dealFromSolver = fromSolver;
+    deadEnd.warned = false;
+    hudRef.current?.hideDeadEnd();
     stopCelebration(tableRoot);
     table.setOptions(rules);
     table.newGame(dealNumber);
@@ -122,6 +186,7 @@ async function start(): Promise<void> {
     strings,
     {
       newGame: () => void newGame(),
+      goBack: () => void goBack(),
       changeSettings: (next) => {
         const optionsChanged = next.drawCount !== settings.drawCount || next.scoring !== settings.scoring;
         const dealsChanged = next.winnable !== settings.winnable;
@@ -129,6 +194,8 @@ async function start(): Promise<void> {
         saveSettings(settings);
         sounds.enabled = settings.sound;
         if (settings.winnable) deals.prepare(options());
+        if (settings.deadEnds) checkDeadEnd();
+        else hud.hideDeadEnd();
         // A game that has not started yet is dealt again with the new settings. A deal
         // the solver picked is only known to be winnable with the rules it was picked
         // for, so it is replaced, as is any deal when winnable deals are switched on.

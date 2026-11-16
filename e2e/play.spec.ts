@@ -6,7 +6,8 @@
 import { type Page, expect, test } from '@playwright/test';
 import { KlondikeGame } from '../src/engine/game';
 import { hint } from '../src/engine/hint';
-import { solve } from '../src/engine/solver';
+import { createRng } from '../src/engine/rng';
+import { analyse, solve } from '../src/engine/solver';
 import {
   DEFAULT_OPTIONS,
   type KlondikeState,
@@ -400,16 +401,99 @@ test('every deal can be won, unless any deal is chosen', async ({ page }) => {
   await page.locator('[data-action=start]').click();
   await waitForDeal(page);
   const first = await dealNumber();
-  expect(solve(deal(first, DEFAULT_OPTIONS)).solved, `deal ${first}`).toBe(true);
+  expect(solve(deal(first, DEFAULT_OPTIONS)).status, `deal ${first}`).toBe('won');
 
   await page.locator('[data-action=new]').click();
   await expect.poll(dealNumber).not.toBe(first);
   await waitForDeal(page);
   const second = await dealNumber();
-  expect(solve(deal(second, DEFAULT_OPTIONS)).solved, `deal ${second}`).toBe(true);
+  expect(solve(deal(second, DEFAULT_OPTIONS)).status, `deal ${second}`).toBe('won');
 
   // The setting is remembered.
   await page.locator('[data-action=menu]').click();
   await page.locator('[data-action=set-deals][data-value=false]').click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('solitaire.settings') ?? '{}').winnable)).toBe(false);
+});
+
+test.describe('smarter hints and dead ends', () => {
+  /** The cards a hint for `move` should light up. */
+  function hintedCards(state: KlondikeState, move: Move): string[] {
+    if (move.type !== 'move') return state.stock.slice(-1);
+    if (move.from.kind === 'waste') return state.waste.slice(-1);
+    if (move.from.kind === 'tableau') return state.tableau[move.from.index]?.cards.slice(-move.count) ?? [];
+    return state.foundations[move.from.kind === 'foundation' ? move.from.index : 0]?.slice(-1) ?? [];
+  }
+
+  /** A game that has just reached a dead end: lost now, but winnable one move earlier. */
+  function deadEndGame(): { seed: number; moves: Move[]; before: KlondikeState } {
+    const rng = createRng(5);
+    for (let seed = 1; seed < 300; seed++) {
+      const game = new KlondikeGame(seed, DEFAULT_OPTIONS);
+      if (analyse(game.state).status !== 'won') continue;
+      for (let step = 0; step < 80; step++) {
+        const moves = legalMoves(game.state).filter((m) => m.type !== 'move' || m.from.kind !== 'foundation');
+        if (moves.length === 0) break;
+        const before = game.state;
+        game.play(moves[Math.floor(rng() * moves.length)] as Move);
+        const status = analyse(game.state).status;
+        if (status === 'lost') return { seed, moves: game.log, before };
+        if (status !== 'won') break;
+      }
+    }
+    throw new Error('No dead end found');
+  }
+
+  async function resumeGame(page: Page, game: { seed: number; moves: Move[] }, settings?: object) {
+    const saved = { seed: game.seed, options: DEFAULT_OPTIONS, moves: game.moves, seconds: 60 };
+    await page.addInitScript(
+      ([value, extra]) => {
+        if (sessionStorage.getItem('seeded')) return;
+        localStorage.setItem('solitaire.game', value);
+        if (extra) localStorage.setItem('solitaire.settings', extra);
+        sessionStorage.setItem('seeded', '1');
+      },
+      [JSON.stringify(saved), settings ? JSON.stringify(settings) : ''] as const,
+    );
+    await page.goto('/?lang=en');
+    await page.locator('[data-action=start]').click();
+    await waitForDeal(page);
+    await settle(page);
+  }
+
+  test('a hint shows the next move of a winning line', async ({ page }) => {
+    let seed = SEED;
+    while (analyse(deal(seed, DEFAULT_OPTIONS)).status !== 'won') seed++;
+    const state = deal(seed, DEFAULT_OPTIONS);
+    const first = analyse(state).moves[0] as Move;
+
+    await open(page, `?deal=${seed}&lang=en`);
+    await page.locator('[data-action=hint]').click();
+    await expect(page.locator('.card.is-hinted')).not.toHaveCount(0);
+    const lit = await page.locator('.card.is-hinted').evaluateAll((els) => els.map((el) => (el as HTMLElement).dataset.card));
+    expect(lit.sort()).toEqual(hintedCards(state, first).sort());
+  });
+
+  test('a game that can no longer be won says so, and Go back returns to where it could', async ({ page }) => {
+    test.setTimeout(90_000);
+    const game = deadEndGame();
+    await resumeGame(page, game);
+
+    const notice = page.locator('.notice');
+    await expect(notice).toBeVisible({ timeout: 10_000 });
+    await expect(notice).toContainText('can no longer be won');
+    await page.locator('[data-action=go-back]').click();
+    await expect(notice).toBeHidden();
+    await expect.poll(() => readTable(page), { timeout: 10_000 }).toEqual(expected(game.before));
+  });
+
+  test('with the warning turned off, only a hint tells', async ({ page }) => {
+    test.setTimeout(90_000);
+    const game = deadEndGame();
+    await resumeGame(page, game, { drawCount: 1, scoring: 'timed', sound: true, winnable: true, deadEnds: false });
+
+    await page.waitForTimeout(2000);
+    await expect(page.locator('.notice')).toBeHidden();
+    await page.locator('[data-action=hint]').click();
+    await expect(page.locator('.notice')).toBeVisible({ timeout: 10_000 });
+  });
 });

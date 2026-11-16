@@ -25,6 +25,8 @@ export interface Settings {
   readonly sound: boolean;
   /** Deal only games the solver has won. */
   readonly winnable: boolean;
+  /** Say so when the game in progress can no longer be won. */
+  readonly deadEnds: boolean;
 }
 
 export interface SavedGame {
@@ -73,6 +75,7 @@ export function loadSettings(): Settings {
     ...options,
     sound: !(isRecord(raw) && raw.sound === false),
     winnable: !(isRecord(raw) && raw.winnable === false),
+    deadEnds: !(isRecord(raw) && raw.deadEnds === false),
   };
 }
 

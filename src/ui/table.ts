@@ -51,7 +51,12 @@ export interface TableEvents {
   won(): void;
   /** A hint was asked for but there is nothing useful to do. */
   noHint(): void;
+  /** A hint was asked for, and the game can no longer be won. */
+  lost(): void;
 }
+
+/** What the solver says about a position (see src/ui/advisor.ts). */
+export type Advice = { status: 'won'; line: readonly Move[] } | { status: 'lost' } | { status: 'unknown' };
 
 /** Milliseconds between cards in the opening deal. */
 const DEAL_INTERVAL = 58;
@@ -278,9 +283,21 @@ export class Table {
   }
 
   undo(): void {
+    this.undoMoves(1);
+  }
+
+  /** Takes back the last `count` moves in one go. */
+  undoMoves(count: number): void {
     if (this.phase !== 'playing' || this.drag) return;
     this.clearHint();
-    if (this.game.undo()) this.sync(SPRINGS.move);
+    let undone = 0;
+    while (undone < count && this.game.undo()) undone++;
+    if (undone > 0) this.sync(SPRINGS.move);
+  }
+
+  /** The positions before each move played, oldest first. */
+  get history(): KlondikeState[] {
+    return this.game.history;
   }
 
   redo(): void {
@@ -313,17 +330,34 @@ export class Table {
     step();
   }
 
-  /** Shows the most useful move: the cards glow and their destination is outlined. */
-  showHint(): void {
+  /**
+   * Where hints come from: the solver's advice for a position. Without it (or
+   * when the solver has no answer) hints fall back to simple rules.
+   */
+  adviser: ((state: KlondikeState) => Promise<Advice>) | null = null;
+
+  /**
+   * Shows a good move: the next move of a winning line when the solver has one,
+   * otherwise the most useful-looking move. The cards glow and their
+   * destination is outlined.
+   */
+  async showHint(): Promise<void> {
     if (this.phase !== 'playing' || this.drag) return;
     this.clearHint();
-    const move = hint(this.game.state);
+    const state = this.game.state;
+    const advice = this.adviser ? await this.adviser(state) : null;
+    // The player may have moved on while the solver was thinking.
+    if (this.game.state !== state || this.phase !== 'playing' || this.drag) return;
+    if (advice?.status === 'lost') {
+      this.events.lost();
+      return;
+    }
+    const move = (advice?.status === 'won' ? advice.line[0] : undefined) ?? hint(state);
     if (!move) {
       this.events.noHint();
       return;
     }
 
-    const state = this.game.state;
     let cards: readonly CardId[] = [];
     let target: Point | null = null;
 
