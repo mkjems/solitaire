@@ -72,6 +72,11 @@ function wantsLargePrint(layout: Layout): boolean {
   return layout.cardW < LARGE_PRINT_BELOW;
 }
 
+/** The address of a file in public/, from any page (/ or /da/). */
+function assetUrl(path: string): string {
+  return new URL(`${import.meta.env.BASE_URL}${path}`, location.href).href;
+}
+
 /** Pentatonic steps for foundation chimes, Ace to King: each card home rings a little higher. */
 const CHIME_STEPS = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28];
 
@@ -178,8 +183,7 @@ export class Table {
     for (let i = 0; i < TABLEAU_PILES; i++) addSlot(`tableau-${i}`, 'tableau');
 
     this.layout = this.measure();
-    const base = document.baseURI;
-    root.style.setProperty('--card-back', `url("${new URL('cards/back.svg', base).href}")`);
+    root.style.setProperty('--card-back', `url("${assetUrl('cards/back.svg')}")`);
     for (const id of fullDeck()) {
       const view = new CardView(id, this.faceUrl(id, wantsLargePrint(this.layout)));
       view.onLand = this.onCardLand;
@@ -247,7 +251,7 @@ export class Table {
   async load(): Promise<void> {
     const images = Array.from(this.cardLayer.querySelectorAll('img'));
     const back = new Image();
-    back.src = new URL('cards/back.svg', document.baseURI).href;
+    back.src = assetUrl('cards/back.svg');
     const decoded = Promise.all([...images, back].map((img) => img.decode().catch(() => undefined)));
     const timeout = new Promise((resolve) => setTimeout(resolve, 3000));
     await Promise.race([decoded, timeout]);
@@ -477,7 +481,7 @@ export class Table {
   }
 
   private faceUrl(id: CardId, largePrint: boolean): string {
-    return new URL(`cards/${largePrint ? 'large/' : ''}${id}.svg`, document.baseURI).href;
+    return assetUrl(`cards/${largePrint ? 'large/' : ''}${id}.svg`);
   }
 
   private applyLayout(): void {

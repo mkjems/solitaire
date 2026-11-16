@@ -12,52 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="Solitaire" />
     <meta name="mobile-web-app-capable" content="yes" />
 
-    <title>Solitaire – Free Klondike Card Game, No Ads</title>
-    <meta
-      name="description"
-      content="Play classic Klondike solitaire free in your browser. Draw one or three, unlimited undo and hints. No ads, no sign-up, works offline on desktop and phone."
-    />
-    <link rel="canonical" href="https://solitaire.mkjems.dk/" />
-
-    <!-- Link previews (Facebook, Messenger, WhatsApp, Slack, LinkedIn, X, ...). -->
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Solitaire" />
-    <meta property="og:title" content="Solitaire – Free Klondike Card Game" />
-    <meta
-      property="og:description"
-      content="Classic Klondike solitaire in your browser. Free, no ads, no sign-up. Draw one or three, unlimited undo and hints."
-    />
-    <meta property="og:url" content="https://solitaire.mkjems.dk/" />
-    <meta property="og:locale" content="en_GB" />
-    <meta property="og:image" content="https://solitaire.mkjems.dk/og-image.jpg" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta
-      property="og:image:alt"
-      content="A laughing grandfather holds up the ace of hearts next to a solitaire table, with the words Solitaire – Free Klondike Card Game."
-    />
-    <meta name="twitter:card" content="summary_large_image" />
-
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": ["VideoGame", "WebApplication"],
-        "name": "Solitaire",
-        "alternateName": "Klondike Solitaire",
-        "url": "https://solitaire.mkjems.dk/",
-        "description": "Classic Klondike solitaire, free in the browser. Draw one or three, unlimited undo, hints, statistics and numbered deals.",
-        "image": "https://solitaire.mkjems.dk/og-image.jpg",
-        "genre": ["Card game", "Solitaire"],
-        "gamePlatform": "Web browser",
-        "playMode": "SinglePlayer",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Any",
-        "inLanguage": ["en", "da"],
-        "isAccessibleForFree": true,
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-        "author": { "@type": "Person", "name": "M. Kjems", "url": "https://mkjems.dk/" }
-      }
-    </script>
+    <!-- Title, description, translations, link previews and structured data:
+         filled in per language from site/pages.ts by site/plugin.ts. -->
+    <!-- page:head -->
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -71,45 +28,10 @@
     <div id="hud-root"></div>
     <div id="safe-area-probe" aria-hidden="true"></div>
 
-    <!-- What the game is, as plain text for search engines and screen readers.
-         The table covers the whole screen, so this is not drawn on it. -->
-    <section class="about" aria-labelledby="about-title">
-      <h1 id="about-title">Solitaire: free Klondike card game</h1>
-      <p>
-        Classic Klondike solitaire that you play in your browser, on a computer, tablet or phone. It is
-        free, has no ads and needs no sign-up. Once it has loaded it also works offline, and you can add
-        it to your home screen to play in full screen.
-      </p>
-      <h2>Features</h2>
-      <ul>
-        <li>Draw one card or three cards from the stock</li>
-        <li>Unlimited undo and redo</li>
-        <li>Hints when you are stuck, and a button that finishes a solved game for you</li>
-        <li>Standard, timed or Vegas scoring, or no score at all</li>
-        <li>Statistics: games won, win streaks, best time, fewest moves and best score</li>
-        <li>Numbered deals, so you can replay a deal or send it to a friend</li>
-        <li>Drag and drop, or tap a card to send it to the best place</li>
-        <li>Large-print cards on small screens</li>
-        <li>In English and Danish</li>
-      </ul>
-      <h2>How to play Klondike solitaire</h2>
-      <p>
-        The goal is to move all 52 cards to the four piles at the top right, one pile per suit, from Ace
-        up to King.
-      </p>
-      <p>
-        In the seven columns, place a card on one that is one rank higher and the other colour: a red 6
-        on a black 7. You can move a run of face-up cards together, and only a King may go in an empty
-        column. Hidden cards turn over by themselves.
-      </p>
-      <p>
-        Tap the deck at the top left to turn cards over. When it runs out, tap again to turn the pile
-        back. In draw three, three cards turn at a time and only the top one can be played.
-      </p>
-      <h2>Keyboard shortcuts</h2>
-      <p>Space: draw · Z: undo · R: redo · H: hint · N: new game · F: full screen</p>
-      <p>Made by <a href="https://mkjems.dk/">M. Kjems</a>, who also makes other free browser games.</p>
-    </section>
+    <!-- What the game is, as plain text for search engines and screen readers
+         (filled in per language). The table covers the whole screen, so this is
+         not drawn on it. -->
+    <!-- page:about -->
 
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -39,7 +39,29 @@ The first `npm run test:e2e` may need `npx playwright install chromium`.
 - `src/engine/`: the rules, with no browser code. Fully unit-tested.
 - `src/ui/`: the table, layout, spring animation, cards, sound, controls, statistics, saving.
 - `art/`: source card art. `scripts/prepare-cards.mjs` styles it into `public/cards/`.
+- `site/`: the page text for search engines, per language, and the build step that writes the pages.
 - `e2e/`: browser tests.
+
+## Pages per language
+
+Each language has its own static page for search engines: English at `/`, Danish at `/da/`. They
+are all built from the one `index.html`: its `<!-- page:head -->` and `<!-- page:about -->`
+markers are filled in from [site/pages.ts](site/pages.ts) by the Vite plugin in
+[site/plugin.ts](site/plugin.ts), which also writes `sitemap.xml`. Each page names the others with
+hreflang links.
+
+The main page opens the game in the browser's language; a language page (`/da/`) always opens it in
+its own. `?lang=` overrides both.
+
+To add a language, such as German:
+
+1. Add the game's text to `src/ui/strings.ts` (`de`), so the game itself is in German.
+2. Add a page to `PAGES` in `site/pages.ts` with `lang: 'de'`, `path: '/de/'` and the German texts.
+   The unit tests check that the title and description are short enough for search results.
+3. Make its link preview image: put the original in `art/`, then save a 1200×630 JPEG as
+   `public/og-image-de.jpg`, for example with
+   `sips -s format jpeg -s formatOptions 82 -z 630 1200 art/<original>.png --out public/og-image-de.jpg`.
+4. Add `de` to the hreflang list expected in `site/render.test.ts`.
 
 ## What is saved in the browser
 

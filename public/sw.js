@@ -26,14 +26,19 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
+    // Each language has its own page (/ and /da/), kept under its own address
+    // without the query (?deal=...), so offline play opens the right one.
+    const page = url.origin + url.pathname;
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put('./', copy));
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(page, copy));
+          }
           return response;
         })
-        .catch(() => caches.match('./')),
+        .catch(async () => (await caches.match(page)) ?? caches.match('./')),
     );
     return;
   }

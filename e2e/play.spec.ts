@@ -354,3 +354,38 @@ test('turning a phone sideways and back restores the layout', async ({ page }, i
   expect(new Set(after.map((b) => b.y)).size).toBe(1);
   expect(new Set(after.map((b) => b.h)).size).toBe(1);
 });
+
+test.describe('pages per language', () => {
+  test('the Danish page opens the game in Danish, with every card found', async ({ page }) => {
+    const failed: string[] = [];
+    page.on('requestfailed', (request) => failed.push(request.url()));
+    page.on('response', (response) => {
+      if (response.status() >= 400) failed.push(`${response.status()} ${response.url()}`);
+    });
+    await page.goto(`/da/?deal=${SEED}`);
+    await expect(page.locator('[data-action=start]')).toHaveText('Læg kortene ud');
+    await page.locator('[data-action=start]').click();
+    await waitForDeal(page);
+    await settle(page);
+
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe('da');
+    await expect(page).toHaveTitle(/^Kabale – /);
+    // Every face-up card has loaded its picture.
+    const broken = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLImageElement>('.card-face')].filter((img) => img.complete && img.naturalWidth === 0).length,
+    );
+    expect(broken).toBe(0);
+    expect(failed.filter((url) => !url.includes('stats.mkjems.dk'))).toEqual([]);
+  });
+
+  test('the main page follows the browser language, and ?lang overrides it', async ({ browser }) => {
+    const context = await browser.newContext({ locale: 'da-DK' });
+    const page = await context.newPage();
+    await page.goto('/');
+    await expect(page.locator('[data-action=start]')).toHaveText('Læg kortene ud');
+    await expect(page).toHaveTitle('Kabale');
+    await page.goto('/da/?lang=en');
+    await expect(page.locator('[data-action=start]')).not.toHaveText('Læg kortene ud');
+    await context.close();
+  });
+});

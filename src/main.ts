@@ -31,10 +31,11 @@ function applyParams(settings: Settings, params: URLSearchParams): Settings {
 async function start(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const { code, strings } = pickLanguage();
+  // Each page's title is written for search engines, which read it after scripts
+  // run, so it is kept. Only when the game opens in another language than the
+  // page (a Danish browser on the English page) does the title follow the game.
+  if (code !== document.documentElement.lang) document.title = strings.title;
   document.documentElement.lang = code;
-  // The English title is left as written in the HTML, since search engines read it after
-  // scripts run; players in other languages see the game's name in their own.
-  if (code !== 'en') document.title = strings.title;
 
   let settings = applyParams(loadSettings(), params);
   let stats = loadStats();
@@ -208,7 +209,7 @@ async function start(): Promise<void> {
 
   // Offline play and installing to the home screen.
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => undefined);
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
   }
 }
 

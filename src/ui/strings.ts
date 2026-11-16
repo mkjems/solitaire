@@ -163,7 +163,10 @@ const languages: Record<string, Strings> = { en, da };
 /** Picks the language from a `?lang=` parameter, then the browser, then English. */
 export function pickLanguage(): { code: string; strings: Strings } {
   const requested = new URLSearchParams(location.search).get('lang');
-  const candidates = [requested, ...navigator.languages, navigator.language];
+  // The page for one language (such as /da/) opens the game in that language;
+  // the main page follows the browser.
+  const page = document.documentElement.dataset.gameLanguage;
+  const candidates = [requested, page, ...navigator.languages, navigator.language];
   for (const candidate of candidates) {
     const code = candidate?.slice(0, 2).toLowerCase();
     // Norwegian readers get Danish rather than English.
