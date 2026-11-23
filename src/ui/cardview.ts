@@ -25,6 +25,12 @@ export class CardView {
   readonly flip = new Spring(0, SPRINGS.flip, 0.002);
   /** 0 = resting on the table, 1 = lifted. */
   readonly lift = new Spring(0, SPRINGS.lift, 0.002);
+  /**
+   * Whether the card shows its shadow when lifted. Off for cards moving as part
+   * of a pack, where one shadow stands for the whole pack (dozens of them on
+   * top of each other add up to a heavy blot). Each move turns it back on.
+   */
+  castsShadow = true;
 
   /** Point the card tilts and scales around, relative to its centre. Set while dragging. */
   pivotX = 0;
@@ -91,6 +97,7 @@ export class CardView {
     this.rot.set(0);
     this.flip.set(pose.faceUp ? 1 : 0);
     this.lift.set(0);
+    this.castsShadow = true;
     this.z = pose.z;
     this.flying = false;
     this.landPending = false;
@@ -117,6 +124,7 @@ export class CardView {
     if (distance > 1 || !this.flip.atRest) this.flying = true;
     this.landPending = !quiet && distance > this.width * 0.08;
     this.quietTurn = quiet;
+    this.castsShadow = true;
   }
 
   startDrag(order: number): void {
@@ -203,7 +211,7 @@ export class CardView {
       this.el.style.transform = transform;
     }
 
-    const shadow = Math.round(Math.min(1, lift) * 100) / 100;
+    const shadow = this.castsShadow ? Math.round(Math.min(1, lift) * 100) / 100 : 0;
     if (shadow !== this.lastShadow) {
       if ((shadow > 0) !== (this.lastShadow > 0)) this.el.classList.toggle('is-lifted', shadow > 0);
       this.lastShadow = shadow;

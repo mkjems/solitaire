@@ -477,6 +477,8 @@ export class Table {
         view.place({ ...pose, y: pose.y - layout.stock.y - layout.cardH * 1.25 });
       }
       view.moveTo(pose, SPRINGS.gather, true);
+      // The pack arrives as one: only its bottom card casts a shadow.
+      if (firstDeal) view.castsShadow = i === 0;
     });
     this.hasDealt = true;
     this.sounds.play(firstDeal ? 'slide' : 'shuffle', { pan: this.pan(layout.stock.x), volume: firstDeal ? 0.8 : 1 });
