@@ -17,6 +17,15 @@
   --ink-lift: 10 38 24;
   --ink-deep: 1 10 5;
 
+  /* Empty piles and shadows. On the coloured felts they darken the felt; the
+     black felt cannot be darkened, so it lightens them instead. */
+  --slot-fill: rgba(0, 0, 0, 0.13);
+  --slot-ring: rgba(255, 255, 255, 0.09);
+  --slot-inset: inset 0 2px 10px rgba(0, 0, 0, 0.28);
+  --slot-glyph: rgba(255, 255, 255, 0.16);
+  --card-contact: 0 1px 1.5px rgba(0, 0, 0, 0.36);
+  --disabled-opacity: 0.32;
+
   /* The felt's grain, laid over the table and the menu. */
   --felt-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.62 0 0 0 -0.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -85,6 +94,36 @@
   --ink: 16 17 19;
   --ink-lift: 31 32 35;
   --ink-deep: 5 5 6;
+}
+
+/* Pure black, for OLED screens. */
+:root[data-felt='black'] {
+  --felt-1: #000;
+  --felt-2: #000;
+  --felt-3: #000;
+  --felt-4: #000;
+  --felt-base: #000;
+  --ink: 0 0 0;
+  --ink-lift: 14 14 14;
+  --ink-deep: 0 0 0;
+  --slot-fill: rgba(255, 255, 255, 0.045);
+  --slot-ring: rgba(255, 255, 255, 0.2);
+  --slot-inset: inset 0 0 12px rgba(255, 255, 255, 0.04);
+  --slot-glyph: rgba(255, 255, 255, 0.24);
+  --card-contact: none;
+  --disabled-opacity: 0.5;
+}
+
+/* Sized by the cards, so set where --card-w is (on the table). */
+:root[data-felt='black'] .table {
+  --lift-shadow: 0 calc(var(--card-w) * 0.06) calc(var(--card-w) * 0.22) rgba(255, 255, 255, 0.11);
+}
+
+/* A panel lifted just off the black table, so it reads as a surface. */
+:root[data-felt='black'] .panel {
+  background:
+    var(--felt-grain),
+    radial-gradient(140% 100% at 50% 0%, #1a1a1a, #0b0b0b);
 }
 
 * {
@@ -160,6 +199,9 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  --lift-shadow:
+    0 calc(var(--card-w) * 0.11) calc(var(--card-w) * 0.2) rgba(0, 0, 0, 0.4),
+    0 calc(var(--card-w) * 0.03) calc(var(--card-w) * 0.07) rgba(0, 0, 0, 0.3);
   /* Felt, lit from above the centre. */
   background: radial-gradient(
     125% 95% at 50% 28%,
@@ -218,10 +260,10 @@ body {
   height: var(--card-h);
   border-radius: var(--card-radius);
   pointer-events: auto;
-  background: rgba(0, 0, 0, 0.13);
+  background: var(--slot-fill);
   box-shadow:
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.09),
-    inset 0 2px 10px rgba(0, 0, 0, 0.28);
+    inset 0 0 0 1.5px var(--slot-ring),
+    var(--slot-inset);
 }
 
 .slot::after {
@@ -229,7 +271,7 @@ body {
   inset: 0;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.16);
+  color: var(--slot-glyph);
   font-family: Georgia, 'Times New Roman', serif;
   font-size: calc(var(--card-w) * 0.44);
   line-height: 1;
@@ -266,7 +308,7 @@ body {
   pointer-events: auto;
   will-change: transform;
   /* The contact shadow of a card lying on the table. */
-  box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.36);
+  box-shadow: var(--card-contact);
 }
 
 /* Nothing is on the table until the first deal. */
@@ -318,9 +360,7 @@ body {
   border-radius: inherit;
   opacity: 0;
   pointer-events: none;
-  box-shadow:
-    0 calc(var(--card-w) * 0.11) calc(var(--card-w) * 0.2) rgba(0, 0, 0, 0.4),
-    0 calc(var(--card-w) * 0.03) calc(var(--card-w) * 0.07) rgba(0, 0, 0, 0.3);
+  box-shadow: var(--lift-shadow);
 }
 
 .card.is-lifted .card-shadow {
@@ -416,7 +456,7 @@ button:focus-visible {
 }
 
 button:disabled {
-  opacity: 0.32;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 

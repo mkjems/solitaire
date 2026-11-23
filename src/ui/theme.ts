@@ -6,7 +6,7 @@
 
 import { assetUrl } from './assets';
 
-export const FELTS = ['emerald', 'midnight', 'burgundy', 'graphite'] as const;
+export const FELTS = ['emerald', 'midnight', 'burgundy', 'graphite', 'black'] as const;
 export type Felt = (typeof FELTS)[number];
 
 export const BACKS = ['navy', 'burgundy', 'emerald', 'black'] as const;
@@ -18,6 +18,7 @@ export const FELT_BASE: Record<Felt, string> = {
   midnight: '#0a1b33',
   burgundy: '#2e0b13',
   graphite: '#18191c',
+  black: '#000000',
 };
 
 /** A felt swatch for the menu: the felt's light centre fading to its edge. */
@@ -26,6 +27,7 @@ export const FELT_SWATCH: Record<Felt, string> = {
   midnight: 'radial-gradient(circle at 40% 35%, #2a5a8c, #122d4d 75%)',
   burgundy: 'radial-gradient(circle at 40% 35%, #8a2a3a, #4a131e 75%)',
   graphite: 'radial-gradient(circle at 40% 35%, #55595f, #2b2d31 75%)',
+  black: 'radial-gradient(circle at 40% 35%, #262626, #000 70%)',
 };
 
 export function backUrl(back: Back): string {
