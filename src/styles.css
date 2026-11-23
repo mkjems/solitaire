@@ -1044,7 +1044,8 @@ button.swatch {
     transform 0.2s ease;
 }
 
-button.swatch-back {
+button.swatch-back,
+button.swatch-deck {
   width: 26px;
   height: 36px;
   border-radius: 3px;

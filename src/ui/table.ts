@@ -25,7 +25,6 @@ import {
 } from '../engine/klondike';
 import { randomDealNumber } from '../engine/rng';
 import { Animator } from './animator';
-import { assetUrl } from './assets';
 import type { SoundBoard } from './audio';
 import { CardView } from './cardview';
 import {
@@ -40,7 +39,7 @@ import {
   overlapArea,
 } from './layout';
 import { SPRINGS, type SpringConfig } from './spring';
-import { type Back, backUrl } from './theme';
+import { type Back, type Deck, backUrl, faceUrl } from './theme';
 
 export type Phase = 'loading' | 'dealing' | 'playing' | 'finishing' | 'won';
 
@@ -129,7 +128,9 @@ function vibrate(pattern: number | number[]): void {
 
 export class Table {
   phase: Phase = 'loading';
-  /** The card back in use. Set before load() to avoid loading the default first. */
+  /** The deck and card back in use. Set before load() to avoid loading the defaults first. */
+  private deck: Deck = 'classic';
+  private back: Back = 'navy';
   private backUrl = backUrl('navy');
 
   private game: KlondikeGame;
@@ -219,9 +220,37 @@ export class Table {
     return this.game.state;
   }
 
+  /**
+   * Changes the deck: the faces and the backs. The new faces are loaded before
+   * they replace the old, so no card is ever blank.
+   */
+  setDeck(deck: Deck): void {
+    if (deck === this.deck) return;
+    this.deck = deck;
+    this.setCardBack(this.back);
+    const largePrint = this.largePrint ?? wantsLargePrint(this.layout);
+    if (this.phase === 'loading') {
+      // Before the first deal: load() waits for these.
+      for (const view of this.views.values()) view.setFace(this.faceUrl(view.id, largePrint));
+      return;
+    }
+    const urls = [...this.views.keys()].map((id) => this.faceUrl(id, largePrint));
+    const decoded = urls.map((url) => {
+      const image = new Image();
+      image.src = url;
+      return image.decode().catch(() => undefined);
+    });
+    void Promise.all(decoded).then(() => {
+      if (this.deck !== deck) return;
+      const now = this.largePrint ?? largePrint;
+      for (const view of this.views.values()) view.setFace(this.faceUrl(view.id, now));
+    });
+  }
+
   /** Changes the card backs. The new back is loaded before it replaces the old, so nothing flickers. */
   setCardBack(back: Back): void {
-    const url = backUrl(back);
+    this.back = back;
+    const url = backUrl(back, this.deck);
     if (url === this.backUrl) return;
     this.backUrl = url;
     const image = new Image();
@@ -531,7 +560,7 @@ export class Table {
   }
 
   private faceUrl(id: CardId, largePrint: boolean): string {
-    return assetUrl(`cards/${largePrint ? 'large/' : ''}${id}.svg`);
+    return faceUrl(id, this.deck, largePrint);
   }
 
   private applyLayout(): void {

@@ -1,7 +1,7 @@
 /**
- * The table's look: the colour of the felt and of the card backs. The felt
- * colours themselves are in styles.css (`:root[data-felt=...]`); the card backs
- * are made by scripts/prepare-cards.mjs.
+ * The table's look: the colour of the felt, the deck and the card backs. The
+ * felt colours themselves are in styles.css (`:root[data-felt=...]`); the card
+ * faces and backs are made by scripts/prepare-cards.mjs.
  */
 
 import { assetUrl } from './assets';
@@ -11,6 +11,15 @@ export type Felt = (typeof FELTS)[number];
 
 export const BACKS = ['navy', 'burgundy', 'emerald', 'black'] as const;
 export type Back = (typeof BACKS)[number];
+
+/** Classic light cards, or night cards: dark with light ink. */
+export const DECKS = ['classic', 'night'] as const;
+export type Deck = (typeof DECKS)[number];
+
+/** The folder in public/ that holds a deck's faces and backs. */
+function deckDir(deck: Deck): string {
+  return deck === 'night' ? 'cards/night/' : 'cards/';
+}
 
 /** Each felt's darkest colour: behind the table, and for the browser's bars. Must match styles.css. */
 export const FELT_BASE: Record<Felt, string> = {
@@ -30,8 +39,18 @@ export const FELT_SWATCH: Record<Felt, string> = {
   black: 'radial-gradient(circle at 40% 35%, #262626, #000 70%)',
 };
 
-export function backUrl(back: Back): string {
-  return assetUrl(`cards/back-${back}.svg`);
+export function backUrl(back: Back, deck: Deck = 'classic'): string {
+  return assetUrl(`${deckDir(deck)}back-${back}.svg`);
+}
+
+/** A card's face; the large-print set is for small screens. */
+export function faceUrl(id: string, deck: Deck, largePrint: boolean): string {
+  return assetUrl(`${deckDir(deck)}${largePrint ? 'large/' : ''}${id}.svg`);
+}
+
+/** Marks the deck on the page, for the styles that depend on it. */
+export function applyDeck(deck: Deck): void {
+  document.documentElement.dataset.deck = deck;
 }
 
 /** Lays the felt: the table, the panels' tint and the colour of the browser's bars. */

@@ -6,7 +6,7 @@ import { type ModeStats, type Stats, winRate } from './stats';
 import { SCORING_MODES, type Settings } from './storage';
 import type { Strings } from './strings';
 import type { Table } from './table';
-import { BACKS, type Back, FELTS, FELT_SWATCH, type Felt, backUrl } from './theme';
+import { BACKS, type Back, DECKS, type Deck, FELTS, FELT_SWATCH, type Felt, backUrl, faceUrl } from './theme';
 
 /** The daily deal, as the HUD shows it. */
 export interface DailyInfo {
@@ -155,6 +155,7 @@ export class Hud {
   private readonly notice: HTMLElement;
   private readonly soundChoice: ReturnType<typeof segmented<boolean>>;
   private readonly feltChoice: ReturnType<typeof segmented<Felt>>;
+  private readonly deckChoice: ReturnType<typeof segmented<Deck>>;
   private readonly backChoice: ReturnType<typeof segmented<Back>>;
   private readonly nextGameNote: HTMLElement;
   private readonly statsBody: HTMLElement;
@@ -291,6 +292,15 @@ export class Hud {
       FELTS.map((value) => ({ value, label: strings.felts[value], swatch: FELT_SWATCH[value] })),
       (felt) => this.change({ ...this.settings, felt }),
     );
+    this.deckChoice = segmented<Deck>(
+      'deck',
+      DECKS.map((value) => ({
+        value,
+        label: strings.deckNames[value],
+        swatch: `url("${faceUrl('AS', value, false)}") center / cover`,
+      })),
+      (deck) => this.change({ ...this.settings, deck }),
+    );
     this.backChoice = segmented<Back>(
       'back',
       BACKS.map((value) => ({
@@ -327,6 +337,7 @@ export class Hud {
       setting(strings.deals, this.dealsChoice.el),
       setting(strings.deadEnds, this.deadEndsChoice.el),
       setting(strings.felt, this.feltChoice.el),
+      setting(strings.deck, this.deckChoice.el),
       setting(strings.backs, this.backChoice.el),
       setting(strings.sound, this.soundChoice.el),
     );
@@ -588,7 +599,12 @@ export class Hud {
     this.dealsChoice.set(this.settings.winnable);
     this.deadEndsChoice.set(this.settings.deadEnds);
     this.feltChoice.set(this.settings.felt);
+    this.deckChoice.set(this.settings.deck);
     this.backChoice.set(this.settings.back);
+    // The back swatches show the backs of the chosen deck.
+    for (const node of this.backChoice.el.querySelectorAll<HTMLElement>('button[data-value]')) {
+      node.style.background = `url("${backUrl(node.dataset.value as Back, this.settings.deck)}") center / cover`;
+    }
     this.dailyStatus.textContent = this.daily.solvedToday
       ? [`✓ ${this.strings.solvedToday}`, this.streakText()].filter(Boolean).join(' · ')
       : this.streakText();
