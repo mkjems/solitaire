@@ -114,9 +114,15 @@
   --disabled-opacity: 0.5;
 }
 
-/* Sized by the cards, so set where --card-w is (on the table). */
+/* Sized by the cards, so set where --card-w is (on the table). The usual dark
+   shadow shows on the cards beneath a lifted card; the black felt cannot show
+   it, so a pale glow underneath it lifts the card off the felt instead. */
 :root[data-felt='black'] .table {
-  --lift-shadow: 0 calc(var(--card-w) * 0.06) calc(var(--card-w) * 0.22) rgba(255, 255, 255, 0.11);
+  --lift-shadow:
+    0 calc(var(--card-w) * 0.11) calc(var(--card-w) * 0.2) rgba(0, 0, 0, 0.4),
+    0 calc(var(--card-w) * 0.03) calc(var(--card-w) * 0.07) rgba(0, 0, 0, 0.3),
+    0 calc(var(--card-w) * 0.06) calc(var(--card-w) * 0.24) rgba(255, 255, 255, 0.2),
+    0 calc(var(--card-w) * 0.02) calc(var(--card-w) * 0.07) rgba(255, 255, 255, 0.12);
 }
 
 /* A panel lifted just off the black table, so it reads as a surface. */
