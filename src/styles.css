@@ -773,6 +773,11 @@ button:disabled {
   border-color: #f6e6ad;
 }
 
+.notice .notice-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f8e6ad, #dab660);
+  border-color: #f6e6ad;
+}
+
 .notice .notice-close {
   border: none;
   background: transparent;
