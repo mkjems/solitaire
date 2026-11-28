@@ -318,7 +318,7 @@ test('on a phone the page scrolls to hide the browser bars, and the table stays 
   expect(await page.locator('.card[data-card="4S"]').boundingBox()).toEqual(before);
 });
 
-test('small screens get large-print cards, and phones held sideways the side layout', async ({ page }, info) => {
+test('small screens get large-print cards, and phones their own layouts', async ({ page }, info) => {
   await open(page, `?deal=${SEED}&lang=en`);
   const read = () =>
     page.evaluate(() => ({
@@ -328,7 +328,8 @@ test('small screens get large-print cards, and phones held sideways the side lay
   const { layout, face } = await read();
   // Large print on phones, upright or sideways; the original artwork on a desktop.
   expect(face.includes('/cards/large/')).toBe(info.project.name !== 'desktop');
-  expect(layout).toBe(info.project.name === 'phone-landscape' ? 'side' : 'classic');
+  const expected = { desktop: 'classic', phone: 'portrait', 'phone-landscape': 'side' };
+  expect(layout).toBe(expected[info.project.name as keyof typeof expected]);
 });
 
 test('turning a phone sideways and back restores the layout', async ({ page }, info) => {
