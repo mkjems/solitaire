@@ -37,6 +37,7 @@ import {
   dropZone,
   landingSpot,
   overlapArea,
+  stackOffset,
 } from './layout';
 import { SPRINGS, type SpringConfig } from './spring';
 import { type Back, type Deck, backUrl, faceUrl } from './theme';
@@ -490,8 +491,8 @@ export class Table {
     // The pack: the stock at the bottom, the first card to be dealt on top.
     const pack = [...state.stock, ...dealt.slice().reverse()];
     const packPose = (i: number): Pose => ({
-      x: layout.stock.x - i * layout.thickness,
-      y: layout.stock.y - i * layout.thickness,
+      x: layout.stock.x + stackOffset(layout, i).x,
+      y: layout.stock.y + stackOffset(layout, i).y,
       faceUp: false,
       z: i,
       pile: 'stock',
@@ -502,8 +503,12 @@ export class Table {
       const view = this.view(id);
       const pose = packPose(i);
       if (firstDeal) {
-        // The pack slides in from above the table.
-        view.place({ ...pose, y: pose.y - layout.stock.y - layout.cardH * 1.25 });
+        // The pack slides in from the nearest edge: below in portrait, else above.
+        const offscreen =
+          layout.mode === 'portrait'
+            ? layout.height - layout.stock.y + layout.cardH * 0.25
+            : -layout.stock.y - layout.cardH * 1.25;
+        view.place({ ...pose, y: pose.y + offscreen });
       }
       view.moveTo(pose, SPRINGS.gather, true);
       // The pack arrives as one: only its bottom card casts a shadow.

@@ -35,8 +35,10 @@ export interface Layout {
    * classic: stock, waste and foundations in a row above the tableau.
    * side: stock and waste in a column left of the tableau, foundations in a
    * 2×2 grid to its right; for wide, short screens such as phones held sideways.
+   * portrait: foundations along the top, stock and waste low on the right,
+   * below the tableau, where a thumb finds them; for phones held upright.
    */
-  readonly mode: 'classic' | 'side';
+  readonly mode: 'classic' | 'side' | 'portrait';
   readonly width: number;
   readonly height: number;
   readonly cardW: number;
@@ -44,7 +46,11 @@ export interface Layout {
   readonly gapX: number;
   readonly stock: Point;
   readonly waste: Point;
-  /** Step between fanned waste cards: sideways in the classic layout, downwards in the side layout. */
+  /**
+   * Step between fanned waste cards: sideways in the classic layout, downwards
+   * in the side layout. In the portrait layout the top card stays put next to
+   * the stock and the fan opens to its left.
+   */
   readonly wasteFanDx: number;
   readonly wasteFanDy: number;
   readonly foundations: readonly Point[];
@@ -56,6 +62,16 @@ export interface Layout {
   readonly tableauBottom: number;
   /** Tiny per-card offset that gives squared-up piles visible thickness. */
   readonly thickness: number;
+}
+
+/**
+ * Where the i-th card of a squared-up stock or waste pile sits, relative to the
+ * pile's spot. Piles grow up and to the left; in portrait only up, so the
+ * side-by-side stock and waste keep the same gap as the tableau columns.
+ */
+export function stackOffset(layout: Layout, i: number): Point {
+  const d = i * layout.thickness;
+  return { x: layout.mode === 'portrait' ? 0 : -d, y: -d };
 }
 
 /** Card proportions: 2.5in × 3.5in. */
@@ -79,13 +95,17 @@ function classicLayout(width: number, height: number, insets: Insets): Layout {
   /** Portrait phones have height to spare, so piles can fan out further. */
   const tall = availH > availW * 1.35;
 
-  const marginX = narrow ? 3 : Math.max(16, availW * 0.025);
+  /** Any phone held upright, even a small one with the browser's toolbars showing. */
+  const portrait = narrow && availH > availW * 1.2;
+
+  const marginX = narrow ? 6 : Math.max(16, availW * 0.025);
   const minGapRatio = narrow ? 0.045 : 0.14;
 
   // The card must fit seven columns across, and leave room below the top row
   // for a reasonably long tableau pile.
   const byWidth = (availW - 2 * marginX) / (TABLEAU_PILES + (TABLEAU_PILES - 1) * minGapRatio);
-  const byHeight = availH / 4.05 / ASPECT;
+  // Portrait adds a row below the tableau for the stock and waste.
+  const byHeight = availH / (portrait ? 5.4 : 4.05) / ASPECT;
   const cardW = Math.floor(Math.min(byWidth, byHeight));
   const cardH = Math.round(cardW * ASPECT);
 
@@ -98,17 +118,29 @@ function classicLayout(width: number, height: number, insets: Insets): Layout {
   const column = (i: number): number => Math.round(originX + i * (cardW + gapX));
 
   const topY = Math.round(insets.top + Math.max(8, cardH * 0.09));
-  const tableauY = Math.round(topY + cardH + cardH * (narrow ? 0.16 : 0.2));
+  const rowGap = cardH * (narrow ? 0.16 : 0.2);
+  const tableauY = Math.round(topY + cardH + rowGap);
+  const faceDownDy = cardH * (tall ? 0.15 : 0.11);
+  const faceUpDy = cardH * (tall ? 0.31 : 0.25);
+  const bottom = height - insets.bottom - Math.max(8, cardH * 0.07);
+
+  // Portrait: the stock row sits a card's height above where the longest
+  // possible pile (six face-down cards under a King-to-Ace run) would end, so
+  // it stays within easy reach and never has to move; that rare pile squeezes
+  // up a little to clear it. On a short screen it settles at the bottom.
+  const longestPile = 6 * faceDownDy + 12 * faceUpDy + cardH;
+  const lowerY = Math.round(Math.min(tableauY + longestPile + rowGap - cardH, bottom - cardH));
 
   return {
-    mode: 'classic',
+    mode: portrait ? 'portrait' : 'classic',
     width,
     height,
     cardW,
     cardH,
     gapX,
-    stock: { x: column(0), y: topY },
-    waste: { x: column(1), y: topY },
+    // Portrait keeps a column free on the right, bringing them in towards the thumb.
+    stock: portrait ? { x: column(TABLEAU_PILES - 2), y: lowerY } : { x: column(0), y: topY },
+    waste: portrait ? { x: column(TABLEAU_PILES - 3), y: lowerY } : { x: column(1), y: topY },
     // Wider on phones, where the large-print ranks need the room.
     wasteFanDx: cardW * (narrow ? 0.42 : 0.3),
     wasteFanDy: 0,
@@ -117,9 +149,9 @@ function classicLayout(width: number, height: number, insets: Insets): Layout {
       y: topY,
     })),
     tableau: Array.from({ length: TABLEAU_PILES }, (_, i) => ({ x: column(i), y: tableauY })),
-    faceDownDy: cardH * (tall ? 0.15 : 0.11),
-    faceUpDy: cardH * (tall ? 0.31 : 0.25),
-    tableauBottom: height - insets.bottom - Math.max(8, cardH * 0.07),
+    faceDownDy,
+    faceUpDy,
+    tableauBottom: portrait ? lowerY - rowGap : bottom,
     thickness: Math.min(0.5, cardW * 0.0025),
   };
 }
@@ -225,9 +257,10 @@ export function computePoses(state: KlondikeState, layout: Layout): Map<CardId, 
   const t = layout.thickness;
 
   state.stock.forEach((card, i) => {
+    const offset = stackOffset(layout, i);
     poses.set(card, {
-      x: layout.stock.x - i * t,
-      y: layout.stock.y - i * t,
+      x: layout.stock.x + offset.x,
+      y: layout.stock.y + offset.y,
       faceUp: false,
       z: Z_STOCK + i,
       pile: 'stock',
@@ -235,12 +268,15 @@ export function computePoses(state: KlondikeState, layout: Layout): Map<CardId, 
   });
 
   const fanStart = state.waste.length - state.wasteFan;
+  /** Portrait keeps the playable card in place and fans the others out to its left. */
+  const fanFromEnd = layout.mode === 'portrait';
   state.waste.forEach((card, i) => {
     const fanIndex = Math.max(0, i - fanStart);
-    const depth = Math.min(i, fanStart) * t;
+    const fanSteps = fanFromEnd && i >= fanStart ? fanIndex - (state.wasteFan - 1) : fanIndex;
+    const depth = stackOffset(layout, Math.min(i, fanStart));
     poses.set(card, {
-      x: layout.waste.x - depth + fanIndex * layout.wasteFanDx,
-      y: layout.waste.y - depth + fanIndex * layout.wasteFanDy,
+      x: layout.waste.x + depth.x + fanSteps * layout.wasteFanDx,
+      y: layout.waste.y + depth.y + fanIndex * layout.wasteFanDy,
       faceUp: true,
       z: Z_WASTE + i,
       pile: 'waste',
